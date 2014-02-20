@@ -25,8 +25,6 @@ def main(prog_name, argv) :
 		# Check that the command is one of the commands we support
 		if command == 'album' :
 			main_album(prog_name, argv[1:])
-		elif command == 'push' :
-			main_push(prog_name, argv[1:])
 		elif command == 'gallery' :
 			main_gallery(prog_name, argv[1:])
 		elif command == 'publish' :
@@ -120,11 +118,11 @@ def main_publish(prog_name, argv) :
 	# In case we get unexpected arguments
 	except getopt.GetoptError:
 		print("Malformed option. Use:")
-		print("""%s gallery -n <name> [-p <path> [-d <description> [--conf_name <album.conf>]]]""" % (prog_name))
+		print("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [--t <write thumbnails>]]]""" % (prog_name))
 		sys.exit(2)
 	except KeyError as ke :
 		print("Missing argument: %s" % ke)
-		print("""%s gallery -n <name> [-p <path> [-d <description> [--conf_name <album.conf>]]]""" % (prog_name))
+		print("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [--t <write thumbnails>]]]""" % (prog_name))
 		sys.exit(2)
 
 
@@ -148,7 +146,7 @@ def find_image(directory, name) :
 	for root, dirs, files in os.walk(directory):
 		for f in files :
 			if f == name :
-				return "%s/%s" % (directory, f)
+				return "%s/%s" % (root, f)
 				
 		if '.git' in dirs:
 			dirs.remove('.git')  # don't visit git directories
@@ -410,9 +408,9 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True) :
 	# Gather information about album except if it's a malformed conf file
 	try :
 		info = album_info((album_dir, album_conf))
-	except :
-	    print("Album conf '%s' doesn't contain valid data" % album_conf)
-	    return
+	except Exception as e :
+		print("Error: %s (%s)" % (e, album_conf))
+		sys.exit(2)
 	
 	# Write info but make sure album directory exists
 	temp_dir = "%s/%s" % (temp_root, info['url'])
@@ -426,7 +424,6 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True) :
 			im_file = "%s.jpg" % im_data['file']
 			print("processing %s" % (im_file))
 			image_path = find_image(album_dir, im_file)
-			print(image_path)
 			create_thumbnails(image_path, temp_dir)
 	
 	return temp_dir
