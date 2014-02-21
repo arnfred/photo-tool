@@ -102,18 +102,16 @@ def main_publish(prog_name, argv) :
 
 	# Get command line options
 	try:
-		opts, args = getopt.getopt(argv,"d:s:to:",["directory=","thumbnails=","skip=","out="])
+		opts, args = getopt.getopt(argv,"d:s:wt:",["directory=","thumbnails=","skip=","temp_dir="])
 		opts_dict = dict(opts)
 
 		# find arguments
 		directory = opts_dict.get("--directory", opts_dict["-d"])
-		output = opts_dict.get("--out", opts_dict.get("-o", "tmp"))
+		temp_dir = opts_dict.get("--temp_dir", opts_dict.get("-t", "tmp"))
 		skip = opts_dict.get("--skip", opts_dict.get("-s", "galleries.conf")).split(",")
-		write_thumbnails = "-t" in opts_dict.keys()
+		write_thumbnails = "-w" in opts_dict.keys()
 
-		print(skip)
-		print(directory)
-		publish(directory, out = output, write_thumbnails = write_thumbnails, skip = skip)
+		publish(directory, temp_dir = temp_dir, write_thumbnails = write_thumbnails, skip = skip)
 
 	# In case we get unexpected arguments
 	except getopt.GetoptError:
@@ -345,7 +343,7 @@ def gallery_info(directory, conf_name = "galleries.conf") :
 		conf = filter(lambda l : len(l) > 1, conf_file.readlines())
 		
 	# For each line, add it to a dict
-	galleries = [{ "name" : l.split(" :: ")[0], "description" : l.split(" :: ")[1], "albums" : [] } for l in conf]
+	galleries = [{ "name" : l.split(" :: ")[0], "description" : l.split(" :: ")[1].strip("\n ").strip("\""), "albums" : [] } for l in conf]
 	
 	return galleries
 
@@ -413,6 +411,7 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True) :
 		sys.exit(2)
 	
 	# Write info but make sure album directory exists
+	if not os.path.exists(temp_root) : os.mkdir(temp_root)
 	temp_dir = "%s/%s" % (temp_root, info['url'])
 	if not os.path.exists(temp_dir) : os.mkdir(temp_dir)
 	with open("%s/%s" % (temp_dir, "album.json"), 'w') as fp :
@@ -441,12 +440,12 @@ def process_galleries(directory, conf_name = "galleries.conf", temp_root = "tmp"
 	if not os.path.exists(temp_root) : os.mkdir(temp_root)
 	json_path = "%s/galleries.json" % (temp_root) 
 	with open(json_path, 'w') as fp :
-		json.dump(info, fp)
+		json.dump(info, fp, separators=(',', ': '), indent = 2)
 
 	# Push online
 	push_galleries(json_path)
 	# Delete json
-	call(["rm","-r",json_path])
+	call(["rm", "-r", temp_root])
 
 
 
@@ -455,17 +454,17 @@ def push_galleries(json_path, host_dir = "photos", host = "dynkarken.com", user 
 	call(["rsync","-av", json_path, "%s@%s:~/%s" % (user, host, host_dir)])
 
 
-def publish(directory, out = "tmp", write_thumbnails = True, skip = ["galleries.conf"]) :
+def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galleries.conf"]) :
 	configurations = get_confs(directory)
-	if not os.path.exists(out) : os.mkdir(out)
+	if not os.path.exists(temp_dir) : os.mkdir(temp_dir)
 	for c in configurations :
 		if c[1] not in skip :
 			print("processing '%s'" % c[1])
-			album_path = process_album(c, temp_root = out, write_thumbnails = write_thumbnails)
+			album_path = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
 			print("pushing '%s'" % c[1])
 			push(album_path)
 			print("removing temp dir")
-			call(["rm","-r",album_path])
+			call(["rm","-r", temp_dir])
 
 
 def push(local_dir, host_dir = "photos", host = "dynkarken.com", user = "arnfred") :
