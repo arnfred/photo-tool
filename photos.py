@@ -72,16 +72,19 @@ def main_gallery(prog_name, argv) :
 		opts_dict = dict(opts)
 
 		# find arguments
-		gallery_name = opts_dict.get("--name", opts_dict["-n"])
+		gallery_name = opts_dict.get("--name", opts_dict.get("-n"))
 		gallery_path = opts_dict.get("--path", opts_dict.get("-p", "."))
-		gallery_desc = opts_dict.get("--description", opts_dict.get("--desc", opts_dict.get("-d", "")))
 		conf_name = opts_dict.get("--conf_name", "galleries.conf")
 
-		# Do we delete?
-		if "-r" in opts_dict.keys() or "--remove" in opts_dict.keys() :
-			remove_gallery(gallery_path, gallery_name)
-		else :
-			add_gallery(gallery_path, gallery_name, gallery_desc, conf_name = conf_name)
+		if gallery_name != None :
+
+			# Do we delete?
+			if "-r" in opts_dict.keys() or "--remove" in opts_dict.keys() :
+				remove_gallery(gallery_path, gallery_name)
+			else :
+				# Get description
+				gallery_desc = opts_dict.get("--description", opts_dict.get("--desc", opts_dict["-d", ""]))
+				add_gallery(gallery_path, gallery_name, gallery_desc, conf_name = conf_name)
 
 		# Push online?
 		if "-u" in opts_dict.keys() or "--upload" in opts_dict.keys() : 
@@ -324,6 +327,8 @@ def album_info(conf_pair) :
 			album['title'] = value_stripped
 		elif name.lower() == "galleries" :
 			album['galleries'] = value_stripped.split(", ")
+		elif name.lower() == "public" :
+			album['public'] = value_stripped.lower() in ["true", "yes"]
 		else :
 			album[name.lower()] = value_stripped
 
