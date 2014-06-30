@@ -21,20 +21,19 @@ def main(prog_name, argv):
         command = argv[0]
 
         # Check that the command is one of the commands we support
-        if command == 'album':
+        if command == 'init':
             main_album(prog_name, argv[1:])
         elif command == 'gallery':
             main_gallery(prog_name, argv[1:])
         elif command == 'publish':
             main_publish(prog_name, argv[1:])
             sys.exit(0)
-
-    print("""You need to specify a command:
-          %s album [args]
-          %s push [args]
-          %s gallery [args]
-          %s publish [args]""" % (prog_name, prog_name, prog_name, prog_name))
-    sys.exit(2)
+        else:
+            print("""You need to specify a command:
+                %s init [args]
+                %s gallery [args]
+                %s publish [args]""" % (prog_name, prog_name, prog_name))
+            sys.exit(2)
 
 
 def main_album(prog_name, argv):
