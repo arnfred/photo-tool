@@ -116,11 +116,11 @@ def main_publish(prog_name, argv):
     # In case we get unexpected arguments
     except getopt.GetoptError:
         print("Malformed option. Use:")
-        print("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [--t <write thumbnails>]]]""" % (prog_name))
+        print("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [-w <write thumbnails>]]]""" % (prog_name))
         sys.exit(2)
     except KeyError as ke:
         print("Missing argument: %s" % ke)
-        print("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [--t <write thumbnails>]]]""" % (prog_name))
+        print("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [-w <write thumbnails>]]]""" % (prog_name))
         sys.exit(2)
 
 
