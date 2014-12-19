@@ -362,7 +362,7 @@ def create_thumbnails(image_path, directory):
     # Open original image
     image_orig = Image.open(image_path)
     image = image_orig.copy()
-    image_name = image_path.split(".jpg")[0].split("/")[-1]
+    image_name = image_path.lower().split(".jpg")[0].split("/")[-1]
     orientation = 'horizontal' if image_orig.size[0] > image_orig.size[1] else 'vertical'
 
     # For each size produce an image of this size and save in directory
