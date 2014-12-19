@@ -143,7 +143,7 @@ def find_image(directory, name):
     # find the exact location of a filename that might reside in the subfolder of the root
     for root, dirs, files in os.walk(directory):
         for f in files:
-            if f == name:
+            if f.lower() == name.lower():
                 return "%s/%s" % (root, f)
 
         if '.git' in dirs:
@@ -275,7 +275,7 @@ def image_info(root, image_name, desc):
     """ Generate a dictionary of information about an image """
     # Init image dictionary
     image_dict = {
-        'file' : image_name.split(".jpg")[0],
+        'file' : image_name.lower().split(".jpg")[0],
         'description' : desc.strip(" *"),
         'cover' : len(desc) > 1 and desc[-1] == '*',
         'banner' : len(desc) > 2 and desc[-2] == '*'
@@ -316,7 +316,7 @@ def album_info(conf_pair):
         (name, value) = conf_line.split(" ::")
         value_stripped = value.strip("\n ").strip("\"")
         # Get information from images
-        if "jpg" in name:
+        if "jpg" in name.lower():
             images.append(image_info(images_path, name, value_stripped))
             # Add 'album' as 'title'
         elif name.lower() == "album":
@@ -421,6 +421,7 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
 
     # For each image, save thumbnails
     if write_thumbnails:
+        print(info.get('images', []))
         for im_data in info.get('images', []):
             im_file = "%s.jpg" % im_data['file']
             print("processing %s" % (im_file))
