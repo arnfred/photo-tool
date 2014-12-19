@@ -421,7 +421,6 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
 
     # For each image, save thumbnails
     if write_thumbnails:
-        print(info.get('images', []))
         for im_data in info.get('images', []):
             im_file = "%s.jpg" % im_data['file']
             print("processing %s" % (im_file))
