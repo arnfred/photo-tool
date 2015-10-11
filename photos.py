@@ -291,7 +291,7 @@ def image_info(root, image_name, desc):
     size = image_size(image_path)
 
     # Now pull the interesting data
-    image_dict['datetime'] = exif.get('DateTimeDigitized', exif.get('DateTimeOriginal', exif.get('DateTimeDigitized')))
+    image_dict['datetime'] = exif.get('DateTimeOriginal', exif.get('DateTimeDigitized'))
     image_dict['size'] = size
 
     # Return resulting dictionary
@@ -312,9 +312,16 @@ def album_info(conf_pair):
         conf = conf_file.readlines()
 
     # get album information
-    for conf_line in conf:
-        (name, value) = conf_line.split(" ::")
-        value_stripped = value.strip("\n ").strip("\"")
+    for idx, conf_line in enumerate(conf):
+        try:
+            (name, value) = conf_line.split(" ::")
+            value_stripped = value.strip("\n ").strip("\"")
+        except ValueError:
+            if conf_line.strip("\n") == "":
+                print("Line %i of the configuration is empty" % idx)
+            else:
+                print("Malformed config line: '%s' (line %i)" % (conf_line.strip("\n"), idx+1))
+            exit()
         # Get information from images
         if "jpg" in name.lower():
             images.append(image_info(images_path, name, value_stripped))
