@@ -102,16 +102,17 @@ def main_publish(prog_name, argv):
 
     # Get command line options
     try:
-        opts, args = getopt.getopt(argv,"d:s:wt:",["directory=","thumbnails=","skip=","temp_dir="])
+        opts, args = getopt.getopt(argv,"d:s:wkt:",["directory=","thumbnails=","skip=","temp_dir=","keep_temp="])
         opts_dict = dict(opts)
 
         # find arguments
         directory = opts_dict.get("--directory", opts_dict["-d"])
         temp_dir = opts_dict.get("--temp_dir", opts_dict.get("-t", "tmp"))
         skip = opts_dict.get("--skip", opts_dict.get("-s", "galleries.conf")).split(",")
+        keep_temp = "-k" in opts_dict.keys()
         write_thumbnails = "-w" in opts_dict.keys()
 
-        publish(directory, temp_dir = temp_dir, write_thumbnails = write_thumbnails, skip = skip)
+        publish(directory, temp_dir = temp_dir, write_thumbnails = write_thumbnails, skip = skip, keep_temp = keep_temp)
 
     # In case we get unexpected arguments
     except getopt.GetoptError:
@@ -291,7 +292,7 @@ def image_info(root, image_name, desc):
     size = image_size(image_path)
 
     # Now pull the interesting data
-    image_dict['datetime'] = exif.get('DateTimeDigitized', exif.get('DateTimeOriginal', exif.get('DateTimeDigitized')))
+    image_dict['datetime'] = exif.get('DateTimeOriginal', exif.get('DateTimeDigitized'))
     image_dict['size'] = size
 
     # Return resulting dictionary
@@ -312,9 +313,16 @@ def album_info(conf_pair):
         conf = conf_file.readlines()
 
     # get album information
-    for conf_line in conf:
-        (name, value) = conf_line.split(" ::")
-        value_stripped = value.strip("\n ").strip("\"")
+    for idx, conf_line in enumerate(conf):
+        try:
+            (name, value) = conf_line.split(" ::")
+            value_stripped = value.strip("\n ").strip("\"")
+        except ValueError:
+            if conf_line.strip("\n") == "":
+                print("Line %i of the configuration is empty" % idx)
+            else:
+                print("Malformed config line: '%s' (line %i)" % (conf_line.strip("\n"), idx+1))
+            exit()
         # Get information from images
         if "jpg" in name.lower():
             images.append(image_info(images_path, name, value_stripped))
@@ -456,7 +464,7 @@ def push_galleries(json_path, host_dir = "photos", host = "dynkarken.com", user 
     call(["rsync","-av", json_path, "%s@%s:~/%s" % (user, host, host_dir)])
 
 
-def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galleries.conf"]):
+def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galleries.conf"], keep_temp = False):
     configurations = get_confs(directory)
     if not os.path.exists(temp_dir) : os.mkdir(temp_dir)
     for c in configurations:
@@ -465,8 +473,9 @@ def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galle
             album_path = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
             print("pushing '%s'" % c[1])
             push(album_path)
-            print("removing temp dir")
-            call(["rm","-r", temp_dir])
+            if keep_temp == False:
+                print("removing temp dir")
+                call(["rm","-r", temp_dir])
 
 
 def push(local_dir, host_dir = "photos", host = "dynkarken.com", user = "arnfred"):
