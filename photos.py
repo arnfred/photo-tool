@@ -8,10 +8,11 @@ from PIL.ExifTags import TAGS
 from datetime import datetime
 from subprocess import call
 from dateutil import parser
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import sys
 import getopt
 import traceback
+import toml
 
 
 def main(prog_name, argv):
@@ -25,14 +26,15 @@ def main(prog_name, argv):
             main_album(prog_name, argv[1:])
         elif command == 'gallery':
             main_gallery(prog_name, argv[1:])
+        elif command == 'convert':
+            main_toml_convert(prog_name, argv[1:])
         elif command == 'publish':
             main_publish(prog_name, argv[1:])
-            sys.exit(0)
         else:
-            print("""You need to specify a command:
+            print(("""You need to specify a command:
                 %s init [args]
                 %s gallery [args]
-                %s publish [args]""" % (prog_name, prog_name, prog_name))
+                %s publish [args]""" % (prog_name, prog_name, prog_name)))
             sys.exit(2)
 
 
@@ -53,11 +55,11 @@ def main_album(prog_name, argv):
     # In case we get unexpected arguments
     except getopt.GetoptError:
         print("Malformed option. Use:")
-        print("""%s album -n <name> [-p <path> [-f [--conf_name <album.conf>]]]""" % (prog_name))
+        print(("""%s album -n <name> [-p <path> [-f [--conf_name <album.conf>]]]""" % (prog_name)))
         sys.exit(2)
     except KeyError as ke:
-        print("Missing argument: %s" % ke)
-        print("""%s album -n <name> [-p <path> [-f [--conf_name <album.conf>]]]""" % (prog_name))
+        print(("Missing argument: %s" % ke))
+        print(("""%s album -n <name> [-p <path> [-f [--conf_name <album.conf>]]]""" % (prog_name)))
         sys.exit(2)
 
 
@@ -76,7 +78,7 @@ def main_gallery(prog_name, argv):
         if gallery_name != None:
 
             # Do we delete?
-            if "-r" in opts_dict.keys() or "--remove" in opts_dict.keys():
+            if "-r" in list(opts_dict.keys()) or "--remove" in list(opts_dict.keys()):
                 remove_gallery(gallery_path, gallery_name)
             else:
                 # Get description
@@ -84,18 +86,44 @@ def main_gallery(prog_name, argv):
                 add_gallery(gallery_path, gallery_name, gallery_desc, conf_name = conf_name)
 
         # Push online?
-        if "-u" in opts_dict.keys() or "--upload" in opts_dict.keys():
+        if "-u" in list(opts_dict.keys()) or "--upload" in list(opts_dict.keys()):
             process_galleries(gallery_path, conf_name)
 
     # In case we get unexpected arguments
     except getopt.GetoptError:
         print("Malformed option. Use:")
-        print("""%s gallery -n <name> [-p <path> [-d <description> [--conf_name <album.conf> [--upload]]]]""" % (prog_name))
+        print(("""%s gallery -n <name> [-p <path> [-d <description> [--conf_name <album.conf> [--upload]]]]""" % (prog_name)))
         sys.exit(2)
     except KeyError as ke:
-        print("Missing argument: %s" % ke)
-        print("""%s gallery -n <name> [-p <path> [-d <description> [--conf_name <album.conf> [--upload]]]]""" % (prog_name))
+        print(("Missing argument: %s" % ke))
+        print(("""%s gallery -n <name> [-p <path> [-d <description> [--conf_name <album.conf> [--upload]]]]""" % (prog_name)))
         sys.exit(2)
+
+def main_toml_convert(prog_name, argv):
+
+    # Get command line options
+    try:
+        opts, args = getopt.getopt(argv,"d:s:w:q:k:",["directory=","skip=","temp_dir=","keep_conf="])
+        opts_dict = dict(opts)
+
+        # find arguments
+        directory = opts_dict.get("--directory", opts_dict.get("-d", "."))
+        skip = opts_dict.get("--skip", opts_dict.get("-s", "galleries.conf")).split(",")
+        dry_run = "-q" in list(opts_dict.keys())
+        keep_conf = "-k" in list(opts_dict.keys())
+
+        convert(directory, skip = skip, dry_run = dry_run, keep_conf = keep_conf)
+
+    # In case we get unexpected arguments
+    except getopt.GetoptError:
+        print("Malformed option. Use:")
+        print(("""%s convert -d <directory> [-s <conf files to skip> [-q <Toggle dry-run>]]""" % (prog_name)))
+        sys.exit(2)
+    except KeyError as ke:
+        print(("Missing argument: %s" % ke))
+        print(("""%s convert -d <directory> [-s <conf files to skip>]""" % (prog_name)))
+        sys.exit(2)
+
 
 
 def main_publish(prog_name, argv):
@@ -109,19 +137,19 @@ def main_publish(prog_name, argv):
         directory = opts_dict.get("--directory", opts_dict["-d"])
         temp_dir = opts_dict.get("--temp_dir", opts_dict.get("-t", "tmp"))
         skip = opts_dict.get("--skip", opts_dict.get("-s", "galleries.conf")).split(",")
-        keep_temp = "-k" in opts_dict.keys()
-        write_thumbnails = "-w" in opts_dict.keys()
+        keep_temp = "-k" in list(opts_dict.keys())
+        write_thumbnails = "-w" in list(opts_dict.keys())
 
         publish(directory, temp_dir = temp_dir, write_thumbnails = write_thumbnails, skip = skip, keep_temp = keep_temp)
 
     # In case we get unexpected arguments
     except getopt.GetoptError:
         print("Malformed option. Use:")
-        print("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [-w <write thumbnails>]]]""" % (prog_name))
+        print(("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [-w <write thumbnails>]]]""" % (prog_name)))
         sys.exit(2)
     except KeyError as ke:
-        print("Missing argument: %s" % ke)
-        print("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [-w <write thumbnails>]]]""" % (prog_name))
+        print(("Missing argument: %s" % ke))
+        print(("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [-w <write thumbnails>]]]""" % (prog_name)))
         sys.exit(2)
 
 
@@ -159,20 +187,20 @@ def init_album(album_name, album_path, force = False, conf_name = "album.conf", 
     # Does directory exist?
     if not os.path.exists(album_path):
         # Return errorinit_album("Trip to Bako", "data/2013-07-26 Kuching/")
-        print("'%s' doesn't exist" % (album_path))
+        print(("'%s' doesn't exist" % (album_path)))
         return -1
 
     # Does album.conf already exist?
     conf_path = "%s/%s" % (album_path, conf_name)
     if os.path.isfile(conf_path) and not force:
         # If album.conf exists and we don't want to overwrite it, give error
-        print("'%s' already exists.\nIf you want to overwrite, use \"%s album -f \"%s\" \"%s\"" % (conf_path, cmd, album_name, album_path))
+        print(("'%s' already exists.\nIf you want to overwrite, use \"%s album -f \"%s\" \"%s\"" % (conf_path, cmd, album_name, album_path)))
         return -1
 
     # Create album.conf
     else:
         # Get information
-        album_url = urllib.quote_plus(album_name.lower().replace(" ","-"))
+        album_url = urllib.parse.quote_plus(album_name.lower().replace(" ","-"))
         album = "\n".join(["Album :: \"%s\"" % album_name,
                            "Public :: True",
                            "Description :: \"\"",
@@ -199,7 +227,7 @@ def add_gallery(galleries_path, gallery_name, gallery_desc = "", conf_name = "ga
         with open(conf_path, 'r') as conf:
             lines = conf.readlines()
     else:
-        print("Error: %s doesn't exist" % conf_path)
+        print(("Error: %s doesn't exist" % conf_path))
         sys.exit(2)
 
     # Compile new gallery configuration
@@ -262,7 +290,7 @@ def image_exif(image_path, valid_tags = ['DateTime', 'DateTimeOriginal', 'DateTi
     info = image._getexif()
     exif = {}
     if info == None : return exif
-    for tag, value in info.items():
+    for tag, value in list(info.items()):
         decoded = TAGS.get(tag, tag)
         if decoded in valid_tags or isinstance(value, str):
             value = value.strip().partition("\x00")[0]
@@ -298,6 +326,11 @@ def image_info(root, image_name, desc):
     # Return resulting dictionary
     return image_dict
 
+def album_info_toml(conf_pair):
+    """ Compile a dictionary of information on an album based on a conf pair """
+    conf_path = "%s/%s" % conf_pair
+    return toml.load(conf_path)
+
 
 def album_info(conf_pair):
     """ Compile a dictionary of information on an album based on a conf pair """
@@ -319,9 +352,9 @@ def album_info(conf_pair):
             value_stripped = value.strip("\n ").strip("\"")
         except ValueError:
             if conf_line.strip("\n") == "":
-                print("Line %i of the configuration is empty" % idx)
+                print(("Line %i of the configuration is empty" % idx))
             else:
-                print("Malformed config line: '%s' (line %i)" % (conf_line.strip("\n"), idx+1))
+                print(("Malformed config line: '%s' (line %i)" % (conf_line.strip("\n"), idx+1)))
             exit()
         # Get information from images
         if "jpg" in name.lower():
@@ -345,11 +378,11 @@ def album_info(conf_pair):
 def gallery_info(directory, conf_name = "galleries.conf"):
     """ Compile a dictionary of information based on the galleries.conf file """
     # Load galleres.conf
-    conf_path = "/".join(filter(lambda c : c[1] == conf_name, get_confs(directory))[0])
+    conf_path = "/".join([c for c in get_confs(directory) if c[1] == conf_name][0])
 
     # Parse configuration file
     with open(conf_path, 'r') as conf_file:
-        conf = filter(lambda l : len(l) > 1, conf_file.readlines())
+        conf = [l for l in conf_file.readlines() if len(l) > 1]
 
     # For each line, add it to a dict
     galleries = [{ "name" : l.split(" :: ")[0], "description" : l.split(" :: ")[1].strip("\n ").strip("\""), "albums" : [] } for l in conf]
@@ -416,8 +449,8 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
     try:
         info = album_info((album_dir, album_conf))
     except Exception as e:
-        print("Error: %s (%s)" % (e, album_conf))
-        print(traceback.format_exc())
+        print(("Error: %s (%s)" % (e, album_conf)))
+        print((traceback.format_exc()))
         sys.exit(2)
 
     # Write info but make sure album directory exists
@@ -431,7 +464,7 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
     if write_thumbnails:
         for im_data in info.get('images', []):
             im_file = "%s.jpg" % im_data['file']
-            print("processing %s" % (im_file))
+            print(("processing %s" % (im_file)))
             image_path = find_image(album_dir, im_file)
             create_thumbnails(image_path, temp_dir)
 
@@ -443,7 +476,7 @@ def process_galleries(directory, conf_name = "galleries.conf", temp_root = "tmp"
     try:
         info = gallery_info(directory, conf_name)
     except:
-        print("galleries.conf either doesn't exist in '%s' or doesn't contain valid data" % directory)
+        print(("galleries.conf either doesn't exist in '%s' or doesn't contain valid data" % directory))
         return
 
     # Write info
@@ -469,13 +502,30 @@ def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galle
     if not os.path.exists(temp_dir) : os.mkdir(temp_dir)
     for c in configurations:
         if c[1] not in skip:
-            print("processing '%s'" % c[1])
-            album_path = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
-            print("pushing '%s'" % c[1])
+            print(("processing '%s'" % c[1]))
+            parsed_album = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
+            print(("pushing '%s'" % c[1]))
             push(album_path)
             if keep_temp == False:
                 print("removing temp dir")
                 call(["rm","-r", temp_dir])
+
+def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = True):
+    configurations = get_confs(directory)
+    for c in configurations:
+        if c[1] not in skip:
+            print(("parsing '%s'" % c[1]))
+            parsed_album = album_info(c)
+            # Remember to add photo time information
+            print(("converting '%s' to toml" % c[1]))
+            toml_album = toml.dumps(parsed_album)
+            toml_path = "%s/%s.toml" % (c[0], c[1].split(".conf")[0])
+            if dry_run:
+                print(("This is a dry-run for converting %s to %s. Output:\n%s" % (c[1], toml_path, toml_album)))
+            else:
+                with open(toml_path, 'w') as f:
+                    print(("Writing out to %s" % toml_path))
+                    toml.dump(parsed_album, f)
 
 
 def push(local_dir, host_dir = "photos", host = "dynkarken.com", user = "arnfred"):
