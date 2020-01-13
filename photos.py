@@ -2,6 +2,7 @@
 
 import os
 import fnmatch
+import pprint
 import json
 from PIL import Image
 from PIL.ExifTags import TAGS
@@ -48,18 +49,18 @@ def main_album(prog_name, argv):
         # find arguments
         album_name = opts_dict.get("--name", opts_dict["-n"])
         album_path = opts_dict.get("--path", opts_dict.get("-p", "."))
-        conf_name = opts_dict.get("--conf_name", "album.conf")
+        conf_name = opts_dict.get("--conf_name", "album.toml")
         force = "-f" in args
         init_album(album_name, album_path, force, conf_name = conf_name, cmd = prog_name)
 
     # In case we get unexpected arguments
     except getopt.GetoptError:
         print("Malformed option. Use:")
-        print(("""%s album -n <name> [-p <path> [-f [--conf_name <album.conf>]]]""" % (prog_name)))
+        print(("""%s album -n <name> [-p <path> [-f [--conf_name <album.toml>]]]""" % (prog_name)))
         sys.exit(2)
     except KeyError as ke:
         print(("Missing argument: %s" % ke))
-        print(("""%s album -n <name> [-p <path> [-f [--conf_name <album.conf>]]]""" % (prog_name)))
+        print(("""%s album -n <name> [-p <path> [-f [--conf_name <album.toml>]]]""" % (prog_name)))
         sys.exit(2)
 
 
@@ -181,7 +182,7 @@ def find_image(directory, name):
 
 
 # First task: Init the album.conf file
-def init_album(album_name, album_path, force = False, conf_name = "album.conf", cmd = "photos"):
+def init_album(album_name, album_path, force = False, conf_name = "album.toml", cmd = "photos"):
     """ Inits an album.conf file in the directory with slots ready to be filled out """
 
     # Does directory exist?
@@ -201,20 +202,19 @@ def init_album(album_name, album_path, force = False, conf_name = "album.conf", 
     else:
         # Get information
         album_url = urllib.parse.quote_plus(album_name.lower().replace(" ","-"))
-        album = "\n".join(["Album :: \"%s\"" % album_name,
-                           "Public :: True",
-                           "Description :: \"\"",
-                           "URL :: \"%s\"" % album_url])
-        galleries = "Galleries :: \"all\""
-        line = lambda file_name : "%s :: " % file_name
-        photos = "\n".join(map(line,get_images(album_path)))
+        to_image = lambda file_name : image_info(album_path, file_name, "")
+        album = {
+                'title': album_name,
+                'public': True,
+                'description': "",
+                'url': album_url,
+                'galleries': ["all"],
+                'images': list(map(to_image, get_images(album_path)))
+        }
 
-        # Compile information
-        album_conf = "%s\n%s\n%s" % (album, galleries, photos)
-
-        # Create album.conf file
+        # Create album.toml file
         with open(conf_path, 'w') as f:
-            f.write(album_conf)
+            toml.dump(album, f)
 
 
 
@@ -297,6 +297,7 @@ def image_exif(image_path, valid_tags = ['DateTime', 'DateTimeOriginal', 'DateTi
             if isinstance(decoded, str) and decoded.startswith("DateTime"):
                 value_date = parser.parse(value.replace(":",""))
                 exif[decoded] = value_date
+    pprint.pprint(exif)
     return exif
 
 
