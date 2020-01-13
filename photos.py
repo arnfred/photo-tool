@@ -141,7 +141,7 @@ def main_publish(prog_name, argv):
         keep_temp = "-k" in list(opts_dict.keys())
         write_thumbnails = "-w" in list(opts_dict.keys())
 
-        publish(directory, temp_dir = temp_dir, write_thumbnails = write_thumbnails, skip = skip, keep_temp = keep_temp)
+        publish(directory, temp_dir = temp_dir, write_thumbnails = write_thumbnails, skip = skip, keep_temp = keep_temp, program_name = prog_name)
 
     # In case we get unexpected arguments
     except getopt.GetoptError:
@@ -265,12 +265,12 @@ def remove_gallery(galleries_path, gallery_name, conf_name = "galleries.conf"):
         conf.write("".join(new_lines))
 
 
-def get_confs(directory):
+def get_confs(directory, extension = "toml"):
     """ Recursively explore directory and return all images """
     confs = []
     for root, dirs, files in os.walk(directory):
         for f in files:
-            if fnmatch.fnmatch(f.lower(), "*.conf"):
+            if fnmatch.fnmatch(f.lower(), "*.%s" % extension):
                 confs.append((root, f))
 
         if '.git' in dirs:
@@ -379,7 +379,7 @@ def album_info(conf_pair):
 def gallery_info(directory, conf_name = "galleries.conf"):
     """ Compile a dictionary of information based on the galleries.conf file """
     # Load galleres.conf
-    conf_path = "/".join([c for c in get_confs(directory) if c[1] == conf_name][0])
+    conf_path = "/".join([c for c in get_confs(directory, "conf") if c[1] == conf_name][0])
 
     # Parse configuration file
     with open(conf_path, 'r') as conf_file:
@@ -448,7 +448,7 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
 
     # Gather information about album except if it's a malformed conf file
     try:
-        info = album_info((album_dir, album_conf))
+        info = album_info_toml((album_dir, album_conf))
     except Exception as e:
         print(("Error: %s (%s)" % (e, album_conf)))
         print((traceback.format_exc()))
@@ -498,21 +498,23 @@ def push_galleries(json_path, host_dir = "photos", host = "dynkarken.com", user 
     call(["rsync","-av", json_path, "%s@%s:~/%s" % (user, host, host_dir)])
 
 
-def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galleries.conf"], keep_temp = False):
+def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galleries.conf"], keep_temp = False, program_name = "photos"):
     configurations = get_confs(directory)
     if not os.path.exists(temp_dir) : os.mkdir(temp_dir)
+    if len(configurations) == 0:
+        print("No configuration files found. If you are using the old configuration format ('*.conf'), then run:\n> %s convert -d %s" % (program_name, directory))
     for c in configurations:
         if c[1] not in skip:
             print(("processing '%s'" % c[1]))
             parsed_album = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
             print(("pushing '%s'" % c[1]))
-            push(album_path)
+            sync(directory)
             if keep_temp == False:
                 print("removing temp dir")
                 call(["rm","-r", temp_dir])
 
 def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = True):
-    configurations = get_confs(directory)
+    configurations = get_confs(directory, "conf")
     for c in configurations:
         if c[1] not in skip:
             print(("parsing '%s'" % c[1]))
@@ -529,7 +531,7 @@ def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = T
                     toml.dump(parsed_album, f)
 
 
-def push(local_dir, host_dir = "photos", host = "dynkarken.com", user = "arnfred"):
+def sync(local_dir, host_dir = "photos", host = "dynkarken.com", user = "arnfred"):
     if local_dir[-1] == '/' : local_dir = local_dir[:-1]
     call(["rsync","-av",local_dir, "%s@%s:~/%s" % (user, host, host_dir)])
     # So, put this together with publish. Collect the directories created
