@@ -14,7 +14,12 @@ import sys
 import getopt
 import traceback
 import toml
+import boto3
 
+client = boto3.client('s3')
+
+# Create thumbnails of the following sizes
+thumb_sizes = [(2000, 1500), (1600, 1200), (1280, 980), (1024, 768), (800, 600), (600, 450), (400, 300), (150, 150)]
 
 def main(prog_name, argv):
 
@@ -531,12 +536,20 @@ def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = T
                     toml.dump(parsed_album, f)
 
 
+def upload(album):
+    # For each file upload it to S3
+    for im in album['images']:
+        for (thumb_width, thumb_height) in thumb_sizes:
+            thumb_path = "%s/%s_%ix%i.jpg" % (directory, im['file'], thumb_width, thumb_height)
+            s3_object = s3.Object("ifany.images", "albums/%s/%s" % (album['title'], thumb_path))
+            with open(thumb_path, 'r') as f:
+            object.put(Body=f, ContentType='image/jpeg', ACL='public-read')
+
+
+
 def sync(local_dir, host_dir = "photos", host = "dynkarken.com", user = "arnfred"):
     if local_dir[-1] == '/' : local_dir = local_dir[:-1]
     call(["rsync","-av",local_dir, "%s@%s:~/%s" % (user, host, host_dir)])
-    # So, put this together with publish. Collect the directories created
-    # and for each, push the photos
-    # finally delete directories
 
 
 
