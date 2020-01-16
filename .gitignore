@@ -1,1 +1,2 @@
-aws.env
+aws.test.env
+aws.prod.env

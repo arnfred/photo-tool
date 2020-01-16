@@ -15,8 +15,10 @@ import getopt
 import traceback
 import toml
 import boto3
+import time
 
 s3 = boto3.client('s3')
+dynamodb = boto3.resource('dynamodb')
 
 # Create thumbnails of the following sizes
 thumb_sizes = [(2000, 1500), (1600, 1200), (1280, 980), (1024, 768), (800, 600), (600, 450), (400, 300), (150, 150)]
@@ -302,7 +304,6 @@ def image_exif(image_path, valid_tags = ['DateTime', 'DateTimeOriginal', 'DateTi
             if isinstance(decoded, str) and decoded.startswith("DateTime"):
                 value_date = parser.parse(value.replace(":",""))
                 exif[decoded] = value_date
-    pprint.pprint(exif)
     return exif
 
 
@@ -326,7 +327,7 @@ def image_info(root, image_name, desc):
     size = image_size(image_path)
 
     # Now pull the interesting data
-    image_dict['datetime'] = exif.get('DateTimeOriginal', exif.get('DateTimeDigitized'))
+    image_dict['datetime'] = exif.get('DateTimeOriginal', exif.get('DateTimeDigitized', exif.get('DateTime')))
     image_dict['size'] = size
 
     # Return resulting dictionary
@@ -474,6 +475,12 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
             image_path = find_image(album_dir, im_file)
             create_thumbnails(image_path, temp_dir)
 
+    datetimes = [im['datetime'] for im in info['images'] if im.get('datetime')]
+    if len(datetimes) > 0:
+        info['timestamp'] = int(time.mktime(min(datetimes).timetuple()))
+    else:
+        info['timestamp'] = int(time.mktime(datetime.now().timetuple()))
+
     return (temp_dir, info)
 
 
@@ -538,8 +545,11 @@ def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = T
 
 # according to this guide: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html
 def upload(album, temp_dir):
+    # Fail fast in case environment isn't set
+    albums_table = os.environ['ALBUMS_TABLE']
+    images_bucket = os.environ['IMAGES_BUCKET']
+
     # For each file upload it to S3
-    pprint.pprint(album)
     for im in album['images']:
         for (thumb_width, thumb_height) in thumb_sizes:
             thumb_name = "%s_%ix%i.jpg" % (im['file'], thumb_width, thumb_height)
@@ -547,13 +557,15 @@ def upload(album, temp_dir):
             s3_path = "albums/%s/%s" % (album['url'], thumb_name)
             print("Uploading %s to %s" % (thumb_path, s3_path))
             with open(thumb_path, 'rb') as f:
-                s3.upload_fileobj(f, "ifany.images", s3_path)
+                s3.upload_fileobj(f, images_bucket, s3_path)
 
-
-def sync(local_dir, host_dir = "photos", host = "dynkarken.com", user = "arnfred"):
-    if local_dir[-1] == '/' : local_dir = local_dir[:-1]
-    call(["rsync","-av",local_dir, "%s@%s:~/%s" % (user, host, host_dir)])
-
+    # Upload config to dynamoDB
+    table = dynamodb.Table(albums_table)
+    for im in album['images']:
+        im['datetime'] = im.get('datetime', datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")
+    album_config = { 'id': album['url'], **album }
+    pprint.pprint(album_config)
+    table.put_item(Item=album_config)
 
 
 # Run script if executed

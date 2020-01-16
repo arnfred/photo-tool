@@ -17,8 +17,8 @@ pip install -r requirements.txt
 To use the `aws.env` file you'll need to first decrypt it and then use `env` before running `photos.py`:
 
 ```
-gpg --decrypt < aws.env.gpg > aws.env # Password doesn't end in '?'
-env $(cat aws.env) photos.py publish -d .
+gpg --decrypt < aws.env.test.gpg > aws.test.env # Password doesn't end in '?'
+env $(cat aws.test.env) photos.py publish -d .
 ```
 
 
