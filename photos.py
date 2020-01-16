@@ -16,7 +16,7 @@ import traceback
 import toml
 import boto3
 
-client = boto3.client('s3')
+s3 = boto3.client('s3')
 
 # Create thumbnails of the following sizes
 thumb_sizes = [(2000, 1500), (1600, 1200), (1280, 980), (1024, 768), (800, 600), (600, 450), (400, 300), (150, 150)]
@@ -474,7 +474,7 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
             image_path = find_image(album_dir, im_file)
             create_thumbnails(image_path, temp_dir)
 
-    return temp_dir
+    return (temp_dir, info)
 
 
 def process_galleries(directory, conf_name = "galleries.conf", temp_root = "tmp"):
@@ -511,9 +511,9 @@ def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galle
     for c in configurations:
         if c[1] not in skip:
             print(("processing '%s'" % c[1]))
-            parsed_album = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
+            (temp_dir, parsed_album) = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
             print(("pushing '%s'" % c[1]))
-            sync(directory)
+            upload(parsed_album, temp_dir)
             if keep_temp == False:
                 print("removing temp dir")
                 call(["rm","-r", temp_dir])
@@ -536,15 +536,18 @@ def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = T
                     toml.dump(parsed_album, f)
 
 
-def upload(album):
+# according to this guide: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html
+def upload(album, temp_dir):
     # For each file upload it to S3
+    pprint.pprint(album)
     for im in album['images']:
         for (thumb_width, thumb_height) in thumb_sizes:
-            thumb_path = "%s/%s_%ix%i.jpg" % (directory, im['file'], thumb_width, thumb_height)
-            s3_object = s3.Object("ifany.images", "albums/%s/%s" % (album['title'], thumb_path))
-            with open(thumb_path, 'r') as f:
-            object.put(Body=f, ContentType='image/jpeg', ACL='public-read')
-
+            thumb_name = "%s_%ix%i.jpg" % (im['file'], thumb_width, thumb_height)
+            thumb_path = "%s/%s" % (temp_dir, thumb_name)
+            s3_path = "albums/%s/%s" % (album['url'], thumb_name)
+            print("Uploading %s to %s" % (thumb_path, s3_path))
+            with open(thumb_path, 'rb') as f:
+                s3.upload_fileobj(f, "ifany.images", s3_path)
 
 
 def sync(local_dir, host_dir = "photos", host = "dynkarken.com", user = "arnfred"):

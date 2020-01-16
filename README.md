@@ -2,6 +2,8 @@ Utils for uploading albums to my photo gallery. This code is oooold.
 
 # Setup
 
+## VirtualEnv
+
 To set up a virtualenv, run the following.
 
 ```sh
@@ -9,6 +11,17 @@ python3 -m venv env
 source env/bin/activate
 pip install -r requirements.txt
 ```
+
+## Env
+
+To use the `aws.env` file you'll need to first decrypt it and then use `env` before running `photos.py`:
+
+```
+gpg --decrypt < aws.env.gpg > aws.env # Password doesn't end in '?'
+env $(cat aws.env) photos.py publish -d .
+```
+
+
 
 # Usage
 
