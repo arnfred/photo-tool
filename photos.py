@@ -95,7 +95,7 @@ def main_gallery(prog_name, argv):
 
         # Push online?
         if "-u" in list(opts_dict.keys()) or "--upload" in list(opts_dict.keys()):
-            process_galleries(gallery_path, conf_name)
+            upload_galleries(gallery_path, conf_name)
 
     # In case we get unexpected arguments
     except getopt.GetoptError:
@@ -370,7 +370,7 @@ def album_info(conf_pair):
         elif name.lower() == "album":
             album['title'] = value_stripped
         elif name.lower() == "galleries":
-            album['galleries'] = value_stripped.split(", ")
+            album['galleries'] = map(gallery_name_to_id, value_stripped.split(", "))
         elif name.lower() == "public":
             album['public'] = value_stripped.lower() in ["true", "yes"]
         else:
@@ -381,6 +381,8 @@ def album_info(conf_pair):
 
     return album
 
+def gallery_name_to_url(name):
+    return urllib.parse.quote_plus(name.lower().replace(" ","-"))
 
 def gallery_info(directory, conf_name = "galleries.conf"):
     """ Compile a dictionary of information based on the galleries.conf file """
@@ -392,7 +394,10 @@ def gallery_info(directory, conf_name = "galleries.conf"):
         conf = [l for l in conf_file.readlines() if len(l) > 1]
 
     # For each line, add it to a dict
-    galleries = [{ "name" : l.split(" :: ")[0], "description" : l.split(" :: ")[1].strip("\n ").strip("\""), "albums" : [] } for l in conf]
+    to_name = lambda line: line.split(" :: ")[0]
+    to_url = lambda line: gallery_name_to_url(to_name(line))
+    to_description = lambda line: line.split(" :: ")[1].strip("\n ").strip("\"")
+    galleries = [{ "url": to_url(l), "name" : to_name(l), "description" : to_description(l) } for l in conf]
 
     return galleries
 
@@ -484,25 +489,23 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
     return (temp_dir, info)
 
 
-def process_galleries(directory, conf_name = "galleries.conf", temp_root = "tmp"):
+def upload_galleries(directory, conf_name = "galleries.conf", temp_root = "tmp"):
     """ Gather information about album except if it's a malformed conf file """
     try:
-        info = gallery_info(directory, conf_name)
+        galleries = gallery_info(directory, conf_name)
     except:
         print(("galleries.conf either doesn't exist in '%s' or doesn't contain valid data" % directory))
         return
 
-    # Write info
-    if not os.path.exists(temp_root) : os.mkdir(temp_root)
-    json_path = "%s/galleries.json" % (temp_root)
-    with open(json_path, 'w') as fp:
-        json.dump(info, fp, separators=(',', ': '), indent = 2)
+    # Fail fast in case environment isn't set
+    galleries_table = os.environ['GALLERIES_TABLE']
 
-    # Push online
-    push_galleries(json_path)
-    # Delete json
-    call(["rm", "-r", temp_root])
-
+    # Upload config to dynamoDB
+    table = dynamodb.Table(galleries_table)
+    for g in galleries:
+        gallery_config = { 'id': g['url'], **g }
+        pprint.pprint(gallery_config)
+        table.put_item(Item=gallery_config)
 
 
 
