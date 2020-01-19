@@ -370,7 +370,9 @@ def album_info(conf_pair):
         elif name.lower() == "album":
             album['title'] = value_stripped
         elif name.lower() == "galleries":
-            album['galleries'] = map(gallery_name_to_id, value_stripped.split(", "))
+            pprint.pprint(value_stripped)
+            album['galleries'] = list(map(lambda n: gallery_name_to_url(n), value_stripped.split(", ")))
+            pprint.pprint(album['galleries'])
         elif name.lower() == "public":
             album['public'] = value_stripped.lower() in ["true", "yes"]
         else:
