@@ -508,11 +508,6 @@ def upload_galleries(directory, conf_name = "galleries.conf", temp_root = "tmp")
         table.put_item(Item=gallery_config)
 
 
-
-def push_galleries(json_path, host_dir = "photos", host = "dynkarken.com", user = "arnfred"):
-    call(["rsync","-av", json_path, "%s@%s:~/%s" % (user, host, host_dir)])
-
-
 def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galleries.conf"], keep_temp = False, program_name = "photos"):
     configurations = get_confs(directory)
     if not os.path.exists(temp_dir) : os.mkdir(temp_dir)
@@ -523,7 +518,7 @@ def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galle
             print(("processing '%s'" % c[1]))
             (temp_dir, parsed_album) = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
             print(("pushing '%s'" % c[1]))
-            upload(parsed_album, temp_dir)
+            upload(parsed_album, temp_dir, write_thumbnails)
             if keep_temp == False:
                 print("removing temp dir")
                 call(["rm","-r", temp_dir])
@@ -547,20 +542,21 @@ def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = T
 
 
 # according to this guide: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html
-def upload(album, temp_dir):
+def upload(album, temp_dir, write_thumbnails=True):
     # Fail fast in case environment isn't set
     albums_table = os.environ['ALBUMS_TABLE']
     images_bucket = os.environ['IMAGES_BUCKET']
 
     # For each file upload it to S3
-    for im in album['images']:
-        for (thumb_width, thumb_height) in thumb_sizes:
-            thumb_name = "%s_%ix%i.jpg" % (im['file'], thumb_width, thumb_height)
-            thumb_path = "%s/%s" % (temp_dir, thumb_name)
-            s3_path = "albums/%s/%s" % (album['url'], thumb_name)
-            print("Uploading %s to %s" % (thumb_path, s3_path))
-            with open(thumb_path, 'rb') as f:
-                s3.upload_fileobj(f, images_bucket, s3_path)
+    if write_thumbnails:
+        for im in album['images']:
+            for (thumb_width, thumb_height) in thumb_sizes:
+                thumb_name = "%s_%ix%i.jpg" % (im['file'], thumb_width, thumb_height)
+                thumb_path = "%s/%s" % (temp_dir, thumb_name)
+                s3_path = "albums/%s/%s" % (album['url'], thumb_name)
+                print("Uploading %s to %s" % (thumb_path, s3_path))
+                with open(thumb_path, 'rb') as f:
+                    s3.upload_fileobj(f, images_bucket, s3_path)
 
     # Upload config to dynamoDB
     table = dynamodb.Table(albums_table)
