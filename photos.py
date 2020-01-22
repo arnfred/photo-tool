@@ -21,7 +21,7 @@ s3 = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 
 # Create thumbnails of the following sizes
-thumb_sizes = [(2000, 1500), (1600, 1200), (1280, 980), (1024, 768), (800, 600), (600, 450), (400, 300), (150, 150)]
+thumb_sizes = [(3200, 2400), (2000, 1500), (1600, 1200), (1280, 980), (1024, 768), (800, 600), (600, 450), (400, 300), (150, 150)]
 
 def main(prog_name, argv):
 
@@ -405,9 +405,6 @@ def gallery_info(directory, conf_name = "galleries.conf"):
 def create_thumbnails(image_path, directory):
     """ Create thumbnails of an image """
 
-    # Create thumbnails of the following sizes
-    thumb_sizes = [(2000, 1500), (1600, 1200), (1280, 980), (1024, 768), (800, 600), (600, 450), (400, 300), (150, 150)]
-
     # Make sure directory exists
     if not os.path.exists(directory):
         os.mkdir(directory)
@@ -439,8 +436,8 @@ def create_thumbnails(image_path, directory):
         image.save(thumb_path, "JPEG", quality=92)
 
     # Save original
-    #orig_path = "%s/%s.jpg" % (directory, image_name)
-    #image_orig.save(orig_path, "JPEG", quality=92)
+    orig_path = "%s/%s_original.jpg" % (directory, image_name)
+    image_orig.save(orig_path, "JPEG", quality=92)
 
 
 
@@ -540,6 +537,12 @@ def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = T
                     print(("Writing out to %s" % toml_path))
                     toml.dump(parsed_album, f)
 
+def upload_s3(name, album, temp_dir, images_bucket):
+    thumb_path = "%s/%s" % (temp_dir, name)
+    s3_path = "albums/%s/%s" % (album, name)
+    print("Uploading %s to %s" % (thumb_path, s3_path))
+    with open(thumb_path, 'rb') as f:
+        s3.upload_fileobj(f, images_bucket, s3_path)
 
 # according to this guide: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html
 def upload(album, temp_dir, write_thumbnails=True):
@@ -552,11 +555,11 @@ def upload(album, temp_dir, write_thumbnails=True):
         for im in album['images']:
             for (thumb_width, thumb_height) in thumb_sizes:
                 thumb_name = "%s_%ix%i.jpg" % (im['file'], thumb_width, thumb_height)
-                thumb_path = "%s/%s" % (temp_dir, thumb_name)
-                s3_path = "albums/%s/%s" % (album['url'], thumb_name)
-                print("Uploading %s to %s" % (thumb_path, s3_path))
-                with open(thumb_path, 'rb') as f:
-                    s3.upload_fileobj(f, images_bucket, s3_path)
+                upload_s3(thumb_name, album['url'], temp_dir, images_bucket)
+
+            # Upload image in original size
+            thumb_name = "%s_original.jpg" % (im['file'])
+            upload_s3(thumb_name, album['url'], temp_dir, images_bucket)
 
     # Upload config to dynamoDB
     table = dynamodb.Table(albums_table)
