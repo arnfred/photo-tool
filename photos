@@ -1,5 +1,5 @@
 #!/bin/sh
 
 PHOTOS_APP=$(dirname "$0")/photos.py
-AWS_ENV=$(cat $(dirname "$0")/aws.test.env)
+AWS_ENV=$(cat $(dirname "$0")/aws.prod.env)
 env $AWS_ENV python "$PHOTOS_APP" "$@"

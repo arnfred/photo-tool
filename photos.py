@@ -370,9 +370,7 @@ def album_info(conf_pair):
         elif name.lower() == "album":
             album['title'] = value_stripped
         elif name.lower() == "galleries":
-            pprint.pprint(value_stripped)
             album['galleries'] = list(map(lambda n: gallery_name_to_url(n), value_stripped.split(", ")))
-            pprint.pprint(album['galleries'])
         elif name.lower() == "public":
             album['public'] = value_stripped.lower() in ["true", "yes"]
         else:
@@ -514,7 +512,7 @@ def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galle
         print("No configuration files found. If you are using the old configuration format ('*.conf'), then run:\n> %s convert -d %s" % (program_name, directory))
     for c in configurations:
         if c[1] not in skip:
-            print(("processing '%s'" % c[1]))
+            print(("processing '%s/%s'" % (c[0], c[1])))
             (temp_dir, parsed_album) = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
             print(("pushing '%s'" % c[1]))
             upload(parsed_album, temp_dir, write_thumbnails)
