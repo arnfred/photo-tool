@@ -2,6 +2,7 @@
 
 import os
 import fnmatch
+import upload
 import pprint
 import json
 from PIL import Image
@@ -9,6 +10,7 @@ from PIL.ExifTags import TAGS
 from datetime import datetime
 from subprocess import call
 from dateutil import parser
+from pathlib import Path
 import urllib.request, urllib.parse, urllib.error
 import sys
 import getopt
@@ -16,6 +18,7 @@ import traceback
 import toml
 import boto3
 import time
+from botocore.exceptions import ClientError
 
 s3 = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
@@ -477,11 +480,7 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
             image_path = find_image(album_dir, im_file)
             create_thumbnails(image_path, temp_dir)
 
-    datetimes = [im['datetime'] for im in info['images'] if im.get('datetime')]
-    if len(datetimes) > 0:
-        info['timestamp'] = int(time.mktime(min(datetimes).timetuple()))
-    else:
-        info['timestamp'] = int(time.mktime(datetime.now().timetuple()))
+    info['timestamp'] = int(time.mktime(datetime.now().timetuple()))
 
     return (temp_dir, info)
 
@@ -513,12 +512,12 @@ def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galle
     for c in configurations:
         if c[1] not in skip:
             print(("processing '%s/%s'" % (c[0], c[1])))
-            (temp_dir, parsed_album) = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
+            (album_dir, parsed_album) = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
             print(("pushing '%s'" % c[1]))
-            upload(parsed_album, temp_dir, write_thumbnails)
+            upload(parsed_album, album_dir, write_thumbnails)
             if keep_temp == False:
-                print("removing temp dir")
-                call(["rm","-r", temp_dir])
+                print("removing album dir: %s" % album_dir)
+                call(["rm","-r", album_dir])
 
 def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = True):
     configurations = get_confs(directory, "conf")
@@ -539,10 +538,24 @@ def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = T
 
 def upload_s3(name, album, temp_dir, images_bucket):
     thumb_path = "%s/%s" % (temp_dir, name)
-    s3_path = "albums/%s/%s" % (album, name)
-    print("Uploading %s to %s" % (thumb_path, s3_path))
+    key = "albums/%s/%s" % (album, name)
+    print("Checking if '%s' exists on s3" % (key))
+    exists = False
+    try:
+        response = s3.head_object(Bucket=images_bucket, Key=key)
+        exists = True
+        s3_size = response['ContentLength']
+        file_size = os.path.getsize(thumb_path)
+        if s3_size == file_size:
+            return print("Skipping '%s': it has already been uploaded" % (key))
+    except ClientError as e:
+        pass
+    if exists:
+        print("'%s' exists on S3 but with a different size. Overwriting..." % (key))
+    else:
+        print("'%s' doesn't exist on S3. Uploading..." % (key))
     with open(thumb_path, 'rb') as f:
-        s3.upload_fileobj(f, images_bucket, s3_path)
+        s3.upload_fileobj(f, images_bucket, key)
 
 # according to this guide: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html
 def upload(album, temp_dir, write_thumbnails=True):
@@ -561,13 +574,25 @@ def upload(album, temp_dir, write_thumbnails=True):
             thumb_name = "%s_original.jpg" % (im['file'])
             upload_s3(thumb_name, album['url'], temp_dir, images_bucket)
 
+    # Clean config of empty strings
+    for key, val in album.items():
+        if val == "":
+            album[key] = None
+    for im in album['images']:
+        for key, val in im.items():
+            if val == "":
+                im[key] = None
+
     # Upload config to dynamoDB
     table = dynamodb.Table(albums_table)
     for im in album['images']:
         im['datetime'] = im.get('datetime', datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")
     album_config = { 'id': album['url'], **album }
-    pprint.pprint(album_config)
-    table.put_item(Item=album_config)
+    try:
+        pprint.pprint(album_config)
+        table.put_item(Item=album_config)
+    except ClientError as e:
+        print(e)
 
 
 # Run script if executed
