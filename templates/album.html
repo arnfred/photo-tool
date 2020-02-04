@@ -1,7 +1,98 @@
 <!doctype html>
-<title>Editing {{ album['title'] }}</title>
-{% if album %}
-  <h1>Hello blup</h1>
-{% else %}
-  <h1>Hello, World!</h1>
-  {% endif %}
+<html>
+    <head>
+        <title>{{ album['title'] }}</title>
+    </head>
+
+    <body>
+        <header>
+            <h1>{{ album['title'] }}</h1>
+            <p>{{ msg }}</p>
+        </header>
+
+        <main>
+            <form id="album" enctype="multipart/form-data" method="post" action="/album/{{ album['url'] }}">
+                <article>
+                    <h2>Album Info</h2>
+
+                    <section>
+                        <label for="title">Album Title:</label>
+                        <input id="title" name="title" value="{{ album['title'] }}" type="text" required/>
+                    </section>
+
+                    <section>
+                        <label for="description">Description:</label>
+                        <textarea id="description" name="description" rows="5" cols="33">
+                            {{ album['description'] }}
+                        </textarea>
+                    </section>
+
+                    <section>
+                        <label for="gallery">Gallery:</label>
+                        <input id="gallery" name="gallery" value="{{ album['galleries'][1] }}" required/>
+                    </section>
+
+                    <section>
+                        <label for="url">URL:</label>
+                        <span>/{{ album['url'] }}</span>
+                    </section>
+
+                    <section>
+                        <label for="public">Public:</label>
+                        <label for="public-true">Yes</label>
+                        <input type="radio" id="public-true" name="public" value="true" {{ "checked" if album['public'] else "" }}>
+                        <label for="public-false">No</label>
+                        <input type="radio" id="public-false" name="public" value="false" {{ "" if album['public'] else "checked" }}>
+                    </section>
+                    
+                </article>
+
+
+                <article>
+                    <h2>Images</h2>
+                    {% for image in album['images']: %}
+                    <section>
+                        <img src="http://www.ifany.org/photos/{{ album['url'] }}/{{ image['file'] }}_150x150.jpg" width="150px" height="150px">
+
+                        <div>
+                            <label for="description-{{ image['file'] }}">Description: </label>
+                            <input id="description-{{ image['file'] }}" name="description-{{ image['file'] }}" value="{{ image['description'] }}" type="text" required/>
+                        </div>
+
+                        <div>
+                            <label for="banner-{{ image['file'] }}">Banner:</label>
+                            <label for="banner-true-{{ image['file'] }}">Yes</label>
+                            <input type="radio" id="banner-true-{{ image['file'] }}" name="banner-{{ image['file'] }}" value="true" {{ "checked=checked" if image['banner'] else "" }}>
+                            <label for="banner-false-{{ image['file'] }}">No</label>
+                            <input type="radio" id="banner-false-{{ image['file'] }}" name="banner-{{ image['file'] }}" value="false" {{ "" if image['banner'] else "checked=checked" }}>
+                        </div>
+
+                        <div>
+                            <label for="cover-{{ image['file'] }}">Cover:</label>
+                            <label for="cover-true-{{ image['file'] }}">Yes</label>
+                            <input type="radio" id="cover-true-{{ image['file'] }}" name="cover-{{ image['file'] }}" value="true" {{ "checked=checked" if image['cover'] else "" }}>
+                            <label for="cover-false-{{ image['file'] }}">No</label>
+                            <input type="radio" id="cover-false-{{ image['file'] }}" name="cover-{{ image['file'] }}" value="false" {{ "" if image['cover'] else "checked=checked" }}>
+                        </div>
+
+                        <div>
+                            <label for="datetime-{{ image['file'] }}">Date & Time: </label>
+                            <input id="datetime-{{ image['file'] }}" name="datetime-{{ image['file'] }}" value="{{ image['datetime'] }}" type="text" required/>
+                        </div>
+
+                        <input type="hidden" id="size-{{ image['file'] }}" name="size-{{ image['file'] }}" value="{{ image['size'] }}"/>
+                        <input id="images-names" name="images[]" type="hidden" value="{{ image['file'] }}" />
+
+                    </section>
+                    {% endfor %}
+                </article>
+
+                <section>
+                    <h2>Upload Images</h2>
+                    <input id="fileupload" name="myfile" type="file" multiple/>
+                    <input type="submit" value="submit" id="submit" />
+                </section>
+            </form>
+        </main>
+    </body>
+</html>

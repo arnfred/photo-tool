@@ -17,13 +17,12 @@ pip install -r requirements.txt
 To use the `aws.env` file you'll need to first decrypt it and then use `env` before running `photos.py`:
 
 ```
-gpg --decrypt < aws.env.test.gpg > aws.test.env # Password doesn't end in '?'
+gpg --decrypt < aws.test.env.gpg > aws.test.env # Password doesn't end in '?'
 env $(cat aws.test.env) photos.py publish -d .
 ```
 
 
-
-# Usage
+# Photos Usage
 
 
 ```
@@ -39,3 +38,14 @@ env $(cat aws.test.env) photos.py publish -d .
 # Publish albums
 ./photos.py publish -d <conf directory> [-w <upload images> -t <temp dir> -s <conf files to skip> -k <Keep temp dir>]
 ```
+
+# Uploads Usage
+
+To run the http server for the album edit page locally, first go through the steps for setting up a virtual environment and installing dependencies (listed above), then do the following:
+
+```
+export FLASK_APP=upload.py
+env $(cat aws.test.env) flask run
+```
+
+Now you can access the server in your browser on `http://localhost:5000/album/<album_id>`. Try e.g. [album/koli](http://localhost:5000/album/koli).

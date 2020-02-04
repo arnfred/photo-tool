@@ -1,2 +1,6 @@
 aws.test.env
 aws.prod.env
+env/
+album.conf
+album.toml
+galleries.conf
