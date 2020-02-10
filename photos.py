@@ -23,8 +23,8 @@ from botocore.exceptions import ClientError
 s3 = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 
-# Create thumbnails of the following sizes
-thumb_sizes = [(3200, 2400), (2000, 1500), (1600, 1200), (1280, 980), (1024, 768), (800, 600), (600, 450), (400, 300), (150, 150)]
+# Create images of the following sizes
+image_sizes = [(3200, 2400), (2000, 1500), (1600, 1200), (1280, 980), (1024, 768), (800, 600), (600, 450), (400, 300), (150, 150)]
 
 def main(prog_name, argv):
 
@@ -141,7 +141,7 @@ def main_publish(prog_name, argv):
 
     # Get command line options
     try:
-        opts, args = getopt.getopt(argv,"d:s:wkt:",["directory=","thumbnails=","skip=","temp_dir=","keep_temp="])
+        opts, args = getopt.getopt(argv,"d:s:wkt:",["directory=","images=","skip=","temp_dir=","keep_temp="])
         opts_dict = dict(opts)
 
         # find arguments
@@ -149,18 +149,18 @@ def main_publish(prog_name, argv):
         temp_dir = opts_dict.get("--temp_dir", opts_dict.get("-t", "tmp"))
         skip = opts_dict.get("--skip", opts_dict.get("-s", "galleries.conf")).split(",")
         keep_temp = "-k" in list(opts_dict.keys())
-        write_thumbnails = "-w" in list(opts_dict.keys())
+        write_images = "-w" in list(opts_dict.keys())
 
-        publish(directory, temp_dir = temp_dir, write_thumbnails = write_thumbnails, skip = skip, keep_temp = keep_temp, program_name = prog_name)
+        publish(directory, temp_dir = temp_dir, write_images = write_images, skip = skip, keep_temp = keep_temp, program_name = prog_name)
 
     # In case we get unexpected arguments
     except getopt.GetoptError:
         print("Malformed option. Use:")
-        print(("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [-w <write thumbnails>]]]""" % (prog_name)))
+        print(("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [-w <write images>]]]""" % (prog_name)))
         sys.exit(2)
     except KeyError as ke:
         print(("Missing argument: %s" % ke))
-        print(("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [-w <write thumbnails>]]]""" % (prog_name)))
+        print(("""%s publish -d <directory> [-o <temp directory> [-s <conf files to skip> [-w <write images>]]]""" % (prog_name)))
         sys.exit(2)
 
 
@@ -310,14 +310,15 @@ def image_exif(image_path, valid_tags = ['DateTime', 'DateTimeOriginal', 'DateTi
     return exif
 
 
-def image_info(root, image_name, desc):
+def image_info(root, image_name, desc, published = True):
     """ Generate a dictionary of information about an image """
     # Init image dictionary
     image_dict = {
         'file' : image_name.lower().split(".jpg")[0],
         'description' : desc.strip(" *"),
         'cover' : len(desc) > 1 and desc[-1] == '*',
-        'banner' : len(desc) > 2 and desc[-2] == '*'
+        'banner' : len(desc) > 2 and desc[-2] == '*',
+        'published': published
     }
 
     # Find image
@@ -405,8 +406,8 @@ def gallery_info(directory, conf_name = "galleries.conf"):
     return galleries
 
 
-def create_thumbnails(image_path, directory):
-    """ Create thumbnails of an image """
+def create_images(image_path, directory):
+    """ Create images of an image """
 
     # Make sure directory exists
     if not os.path.exists(directory):
@@ -419,10 +420,10 @@ def create_thumbnails(image_path, directory):
     orientation = 'horizontal' if image_orig.size[0] > image_orig.size[1] else 'vertical'
 
     # For each size produce an image of this size and save in directory
-    for (thumb_width, thumb_height) in thumb_sizes:
+    for (image_width, image_height) in image_sizes:
 
-        # Crop the square thumbnails
-        if thumb_width == thumb_height:
+        # Crop the square images
+        if image_width == image_height:
             (width, height) = image.size
             if orientation == 'horizontal':
                 margin = (width - height) / 2
@@ -432,11 +433,11 @@ def create_thumbnails(image_path, directory):
                 image = image.crop((0, margin, width, height - margin))
 
         # Resize resulting image and save to directory
-        image.thumbnail((thumb_width, thumb_height), Image.ANTIALIAS)
+        image.thumbnail((image_width, image_height), Image.ANTIALIAS)
 
         # Save image
-        thumb_path = "%s/%s_%ix%i.jpg" % (directory, image_name, thumb_width, thumb_height)
-        image.save(thumb_path, "JPEG", quality=92)
+        image_path = "%s/%s_%ix%i.jpg" % (directory, image_name, image_width, image_height)
+        image.save(image_path, "JPEG", quality=92)
 
     # Save original
     orig_path = "%s/%s_original.jpg" % (directory, image_name)
@@ -452,8 +453,8 @@ class DateTimeEncoder(json.JSONEncoder):
 
 
 
-def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
-    """ Compiles json file with information about album and writes thumbnails """
+def process_album(album_pair, temp_root = "tmp", write_images = True):
+    """ Compiles json file with information about album and writes images """
 
     (album_dir, album_conf) = album_pair
 
@@ -472,13 +473,13 @@ def process_album(album_pair, temp_root = "tmp", write_thumbnails = True):
     with open("%s/%s" % (temp_dir, "album.json"), 'w') as fp:
         json.dump(info, fp, cls=DateTimeEncoder)
 
-    # For each image, save thumbnails
-    if write_thumbnails:
+    # For each image, save images
+    if write_images:
         for im_data in info.get('images', []):
             im_file = "%s.jpg" % im_data['file']
             print(("processing %s" % (im_file)))
             image_path = find_image(album_dir, im_file)
-            create_thumbnails(image_path, temp_dir)
+            create_images(image_path, temp_dir)
 
     info['timestamp'] = int(time.mktime(datetime.now().timetuple()))
 
@@ -504,7 +505,7 @@ def upload_galleries(directory, conf_name = "galleries.conf", temp_root = "tmp")
         table.put_item(Item=gallery_config)
 
 
-def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galleries.conf"], keep_temp = False, program_name = "photos"):
+def publish(directory, temp_dir = "tmp", write_images = True, skip = ["galleries.conf"], keep_temp = False, program_name = "photos"):
     configurations = get_confs(directory)
     if not os.path.exists(temp_dir) : os.mkdir(temp_dir)
     if len(configurations) == 0:
@@ -512,9 +513,9 @@ def publish(directory, temp_dir = "tmp", write_thumbnails = True, skip = ["galle
     for c in configurations:
         if c[1] not in skip:
             print(("processing '%s/%s'" % (c[0], c[1])))
-            (album_dir, parsed_album) = process_album(c, temp_root = temp_dir, write_thumbnails = write_thumbnails)
+            (album_dir, parsed_album) = process_album(c, temp_root = temp_dir, write_images = write_images)
             print(("pushing '%s'" % c[1]))
-            upload(parsed_album, album_dir, write_thumbnails)
+            upload(parsed_album, album_dir, write_images)
             if keep_temp == False:
                 print("removing album dir: %s" % album_dir)
                 call(["rm","-r", album_dir])
@@ -537,7 +538,7 @@ def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = T
                     toml.dump(parsed_album, f)
 
 def upload_s3(name, album, temp_dir, images_bucket):
-    thumb_path = "%s/%s" % (temp_dir, name)
+    image_path = "%s/%s" % (temp_dir, name)
     key = "albums/%s/%s" % (album, name)
     print("Checking if '%s' exists on s3" % (key))
     exists = False
@@ -545,7 +546,7 @@ def upload_s3(name, album, temp_dir, images_bucket):
         response = s3.head_object(Bucket=images_bucket, Key=key)
         exists = True
         s3_size = response['ContentLength']
-        file_size = os.path.getsize(thumb_path)
+        file_size = os.path.getsize(image_path)
         if s3_size == file_size:
             return print("Skipping '%s': it has already been uploaded" % (key))
     except ClientError as e:
@@ -554,25 +555,25 @@ def upload_s3(name, album, temp_dir, images_bucket):
         print("'%s' exists on S3 but with a different size. Overwriting..." % (key))
     else:
         print("'%s' doesn't exist on S3. Uploading..." % (key))
-    with open(thumb_path, 'rb') as f:
+    with open(image_path, 'rb') as f:
         s3.upload_fileobj(f, images_bucket, key)
 
 # according to this guide: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-uploading-files.html
-def upload(album, temp_dir, write_thumbnails=True):
+def upload(album, temp_dir, write_images=True):
     # Fail fast in case environment isn't set
     albums_table = os.environ['ALBUMS_TABLE']
     images_bucket = os.environ['IMAGES_BUCKET']
 
     # For each file upload it to S3
-    if write_thumbnails:
+    if write_images:
         for im in album['images']:
-            for (thumb_width, thumb_height) in thumb_sizes:
-                thumb_name = "%s_%ix%i.jpg" % (im['file'], thumb_width, thumb_height)
-                upload_s3(thumb_name, album['url'], temp_dir, images_bucket)
+            for (image_width, image_height) in image_sizes:
+                image_name = "%s_%ix%i.jpg" % (im['file'], image_width, image_height)
+                upload_s3(image_name, album['url'], temp_dir, images_bucket)
 
             # Upload image in original size
-            thumb_name = "%s_original.jpg" % (im['file'])
-            upload_s3(thumb_name, album['url'], temp_dir, images_bucket)
+            image_name = "%s_original.jpg" % (im['file'])
+            upload_s3(image_name, album['url'], temp_dir, images_bucket)
 
     # Clean config of empty strings
     for key, val in album.items():

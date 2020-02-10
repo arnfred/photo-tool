@@ -2,6 +2,64 @@
 <html>
     <head>
         <title>{{ album['title'] }}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+
+h1, h2, p, span, label, input {
+    font-style: sans-serif;
+}
+
+input.large {
+    width:70%;
+}
+input.medium {
+    width:50%;
+}
+input.small {
+    width:30%;
+}
+input {
+    height: 1.3rem;
+    vertical-align:middle;
+}
+input[type=radio] {
+    margin-bottom: 0.25rem;
+    margin-right: 1.5rem;
+}
+textarea {
+    width: 70.25%;
+}
+input, textarea {
+    padding: 0.2rem;
+}
+div {
+    margin: 0.4rem 0;
+}
+section {
+    margin: 0.4rem 0 3rem 0;
+}
+label.main {
+    width: 20%;
+    display: inline-block;
+    text-align: left;
+    padding: 0.2rem;
+    padding-top: 0.4rem;
+    min-width: 6rem;
+    vertical-align:top;
+}
+span {
+    display:inline-block;
+    margin-top:0.4rem;
+}
+h1, h2, img {
+    width:100%;
+    text-align:center;
+    padding:auto;
+}
+
+
+        </style>
+
     </head>
 
     <body>
@@ -16,51 +74,56 @@
                     <h2>Album Info</h2>
 
                     <section>
-                        <label for="title">Album Title:</label>
-                        <input id="title" name="title" value="{{ album['title'] }}" type="text" required/>
-                    </section>
-
-                    <section>
-                        <label for="description">Description:</label>
-                        <textarea id="description" name="description" rows="5" cols="33">
-                            {{ album['description'] }}
-                        </textarea>
-                    </section>
-
-                    <section>
-                        <label for="gallery">Gallery:</label>
-                        <input id="gallery" name="gallery" value="{{ album['galleries'][1] }}" required/>
-                    </section>
-
-                    <section>
-                        <label for="url">URL:</label>
-                        <span>/{{ album['url'] }}</span>
-                    </section>
-
-                    <section>
-                        <label for="public">Public:</label>
-                        <label for="public-true">Yes</label>
-                        <input type="radio" id="public-true" name="public" value="true" {{ "checked" if album['public'] else "" }}>
-                        <label for="public-false">No</label>
-                        <input type="radio" id="public-false" name="public" value="false" {{ "" if album['public'] else "checked" }}>
-                    </section>
-                    
-                </article>
-
-
-                <article>
-                    <h2>Images</h2>
-                    {% for image in album['images']: %}
-                    <section>
-                        <img src="http://www.ifany.org/photos/{{ album['url'] }}/{{ image['file'] }}_150x150.jpg" width="150px" height="150px">
-
                         <div>
-                            <label for="description-{{ image['file'] }}">Description: </label>
-                            <input id="description-{{ image['file'] }}" name="description-{{ image['file'] }}" value="{{ image['description'] }}" type="text" required/>
+                            <label class="main" for="title">Album Title:</label>
+                            <input id="title" class="large" name="title" value="{{ album['title'] }}" type="text" required/>
                         </div>
 
                         <div>
-                            <label for="banner-{{ image['file'] }}">Banner:</label>
+                            <label class="main" for="description">Description:</label>
+                            <textarea id="description" name="description" rows="5" cols="33">
+                                {{ album['description'] }}
+                            </textarea>
+                        </div>
+
+                        <div>
+                            <label class="main" for="gallery">Gallery:</label>
+                            <input id="gallery" class="large" name="gallery" value="{{ album['galleries'][1] }}" required/>
+                        </div>
+
+                        <div>
+                            <label class="main" for="url">URL:</label>
+                            <span>/{{ album['url'] }}</span>
+                        </div>
+
+                        <div>
+                            <label class="main" for="public">Public:</label>
+                            <label for="public-true">Yes</label>
+                            <input type="radio" id="public-true" name="public" value="true" {{ "checked" if album['public'] else "" }}>
+                            <label for="public-false">No</label>
+                            <input type="radio" id="public-false" name="public" value="false" {{ "" if album['public'] else "checked" }}>
+                        </div>
+                    </section>
+                    
+
+
+                    <h2>Images</h2>
+                    {% for idx, image in album['images']: %}
+                    <section>
+                        <img src="http://www.ifany.org/photos/{{ album['url'] }}/{{ image['file'] }}_800x600.jpg">
+
+                        <div>
+                            <label class="main" for="order-{{ image['file'] }}">Index:</label>
+                            <input type="text" id="order-{{ image['file'] }}" class="small" name="order-{{ image['file'] }}" value="{{idx}}.0" />
+                        </div>
+
+                        <div>
+                            <label class="main" for="description-{{ image['file'] }}">Description:</label>
+                            <input id="description-{{ image['file'] }}" name="description-{{ image['file'] }}" value="{{ image['description'] }}" type="text" class="large" required/>
+                        </div>
+
+                        <div>
+                            <label class="main" for="banner-{{ image['file'] }}">Banner:</label>
                             <label for="banner-true-{{ image['file'] }}">Yes</label>
                             <input type="radio" id="banner-true-{{ image['file'] }}" name="banner-{{ image['file'] }}" value="true" {{ "checked=checked" if image['banner'] else "" }}>
                             <label for="banner-false-{{ image['file'] }}">No</label>
@@ -68,7 +131,7 @@
                         </div>
 
                         <div>
-                            <label for="cover-{{ image['file'] }}">Cover:</label>
+                            <label class="main" for="cover-{{ image['file'] }}">Cover:</label>
                             <label for="cover-true-{{ image['file'] }}">Yes</label>
                             <input type="radio" id="cover-true-{{ image['file'] }}" name="cover-{{ image['file'] }}" value="true" {{ "checked=checked" if image['cover'] else "" }}>
                             <label for="cover-false-{{ image['file'] }}">No</label>
@@ -76,8 +139,8 @@
                         </div>
 
                         <div>
-                            <label for="datetime-{{ image['file'] }}">Date & Time: </label>
-                            <input id="datetime-{{ image['file'] }}" name="datetime-{{ image['file'] }}" value="{{ image['datetime'] }}" type="text" required/>
+                            <label class="main" for="datetime-{{ image['file'] }}">Date & Time: </label>
+                            <input id="datetime-{{ image['file'] }}" class="medium" name="datetime-{{ image['file'] }}" value="{{ image['datetime'] }}" type="text" required/>
                         </div>
 
                         <input type="hidden" id="size-{{ image['file'] }}" name="size-{{ image['file'] }}" value="{{ image['size'] }}"/>
@@ -89,7 +152,7 @@
 
                 <section>
                     <h2>Upload Images</h2>
-                    <input id="fileupload" name="myfile" type="file" multiple/>
+                    <input id="fileupload" name="new-images" type="file" multiple/>
                     <input type="submit" value="submit" id="submit" />
                 </section>
             </form>
