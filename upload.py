@@ -17,6 +17,26 @@ images_bucket = os.environ['IMAGES_BUCKET']
 albums_table = os.environ['ALBUMS_TABLE']
 app = Flask(__name__)
 
+@app.route('/', methods =['GET'])
+def view_albums():
+    table = dynamodb.Table(albums_table)
+    try:
+        response = table.scan()
+        if (response['Count'] == 0):
+            return {'error': 'Albums not found'.format(album_id)}, 500
+        else:
+            album_set = { a['id']: {
+                'id': a['id'], 
+                'nb_images': len(a['images']), 
+                'gallery': a['galleries'][-1], 
+                'title': a['title'], 
+                'timestamp': a['timestamp'] 
+            } for a in response['Items'] }
+            albums = sorted(album_set.values(), key=lambda a: a['timestamp'])[::-1]
+            return render_template('list.html', albums=albums)
+    except ClientError as e:
+        return {'error': e}, 500
+
 @app.route('/album/<album_id>', methods = ['GET'])
 def edit_album(album_id):
     table = dynamodb.Table(albums_table)

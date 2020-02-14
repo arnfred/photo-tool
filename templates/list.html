@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+    <head>
+        <title>All Albums</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+
+h1, h2, p, span, label, input {
+    font-family: sans-serif;
+}
+
+        </style>
+
+    </head>
+
+    <body>
+        <header>
+            <h1>Albums</h1>
+        </header>
+
+        <article>
+            <p>{{ msg }}</p>
+            <ul>
+            {% for album in albums: %}
+                <li><a href="gallery/{{album['gallery'][1]}}">{{ album['gallery'] }}</a>: <a href="album/{{ album['id'] }}">{{ album['title'] }}</a> ({{ album['nb_images'] }} images)</li>
+            {% endfor %}
+        </article>
+    </body>
+</html>
+
