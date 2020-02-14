@@ -27,6 +27,7 @@ def edit_album(album_id):
         else:
             most_recent_album = albums_matching_query['Items'][-1]
             album_view = make_album_view(most_recent_album)
+            pprint(most_recent_album)
             return render_template('album.html', album=album_view, msg="")
     except ClientError as e:
         return {'error': e}, 500
@@ -46,11 +47,13 @@ def submit_album(album_id):
         return {'error': e}, 500
 
 def make_album_view(album):
-    images = [{**im, 'size': ",".join([str(s) for s in im['size']]) } for im in album['images']]
+    images = [{**im, 
+        'size': ",".join([str(s) for s in im['size']]),
+        'published': im.get('published', True)
+    } for im in album['images']]
     return {**album, 'images': enumerate(images) }
 
 def parse_album(res, url):
-    print("HERERersdfgsfgsdfgs")
     unordered_images = [parse_image(im, res) for im in res.getlist('images[]')]
     ordered_images = sorted(unordered_images, key=lambda im: float(im[0]))
     pprint(ordered_images)
@@ -66,6 +69,7 @@ def parse_album(res, url):
 
 def parse_image(image_name, res):
     d = { key.split("-")[0]: val for key, val in res.items() if image_name in key }
+    pprint(d)
     order = d['order']
     fmt = "%Y-%m-%dT%H:%M:%S"
     return order, {
@@ -74,6 +78,7 @@ def parse_image(image_name, res):
         'banner': d['banner'] == 'true',
         'size': [int(s) for s in d['size'].split(",")],
         'cover': d['cover'] == 'true',
+        'published': d['published'] == 'true',
         'datetime': d['datetime']
     }
 

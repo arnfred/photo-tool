@@ -6,18 +6,38 @@
         <style>
 
 h1, h2, p, span, label, input {
-    font-style: sans-serif;
+    font-family: sans-serif;
 }
 
-input.large {
-    width:70%;
+@media screen and (max-width:420px) {
+    input.large {
+        width:100%;
+    }
+    input.medium {
+        width:50%;
+    }
+    input.small {
+        width:30%;
+    }
+    div {
+        margin: 0.8rem 0;
+    }
 }
-input.medium {
-    width:50%;
+@media screen and (min-width:420px) {
+    input.large {
+        width:70%;
+    }
+    input.medium {
+        width:50%;
+    }
+    input.small {
+        width:30%;
+    }
+    div {
+        margin: 0.4rem 0;
+    }
 }
-input.small {
-    width:30%;
-}
+
 input {
     height: 1.3rem;
     vertical-align:middle;
@@ -32,8 +52,9 @@ textarea {
 input, textarea {
     padding: 0.2rem;
 }
-div {
-    margin: 0.4rem 0;
+article {
+    max-width: 800px;
+    margin: auto;
 }
 section {
     margin: 0.4rem 0 3rem 0;
@@ -65,7 +86,10 @@ h1, h2, img {
     <body>
         <header>
             <h1>{{ album['title'] }}</h1>
-            <p>{{ msg }}</p>
+
+            <article>
+                <p>{{ msg }}</p>
+            </article>
         </header>
 
         <main>
@@ -113,13 +137,13 @@ h1, h2, img {
                         <img src="http://www.ifany.org/photos/{{ album['url'] }}/{{ image['file'] }}_800x600.jpg">
 
                         <div>
-                            <label class="main" for="order-{{ image['file'] }}">Index:</label>
-                            <input type="text" id="order-{{ image['file'] }}" class="small" name="order-{{ image['file'] }}" value="{{idx}}.0" />
+                            <label class="main" for="description-{{ image['file'] }}">Description:</label>
+                            <input id="description-{{ image['file'] }}" name="description-{{ image['file'] }}" value="{{ image['description'] }}" type="text" class="large" required/>
                         </div>
 
                         <div>
-                            <label class="main" for="description-{{ image['file'] }}">Description:</label>
-                            <input id="description-{{ image['file'] }}" name="description-{{ image['file'] }}" value="{{ image['description'] }}" type="text" class="large" required/>
+                            <label class="main" for="order-{{ image['file'] }}">Index:</label>
+                            <input type="text" id="order-{{ image['file'] }}" class="small" name="order-{{ image['file'] }}" value="{{idx}}.0" />
                         </div>
 
                         <div>
@@ -143,18 +167,26 @@ h1, h2, img {
                             <input id="datetime-{{ image['file'] }}" class="medium" name="datetime-{{ image['file'] }}" value="{{ image['datetime'] }}" type="text" required/>
                         </div>
 
+                        <div>
+                            <label class="main" for="published-{{ image['file'] }}">Published:</label>
+                            <label for="published-{{ image['file'] }}">Yes</label>
+                            <input type="radio" id="published-true-{{ image['file'] }}" name="published-{{ image['file'] }}" value="true" {{ "checked=checked" if image['published'] else "" }}>
+                            <label for="published-{{ image['file'] }}">No</label>
+                            <input type="radio" id="published-false-{{ image['file'] }}" name="published-{{ image['file'] }}" value="false" {{ "" if image['published'] else "checked=checked" }}>
+                        </div>
+
                         <input type="hidden" id="size-{{ image['file'] }}" name="size-{{ image['file'] }}" value="{{ image['size'] }}"/>
                         <input id="images-names" name="images[]" type="hidden" value="{{ image['file'] }}" />
 
                     </section>
                     {% endfor %}
-                </article>
 
-                <section>
-                    <h2>Upload Images</h2>
-                    <input id="fileupload" name="new-images" type="file" multiple/>
-                    <input type="submit" value="submit" id="submit" />
-                </section>
+                    <section>
+                        <h2>Upload Images</h2>
+                        <input id="fileupload" name="new-images" type="file" multiple/>
+                        <input type="submit" value="submit" id="submit" />
+                    </section>
+                </article>
             </form>
         </main>
     </body>
