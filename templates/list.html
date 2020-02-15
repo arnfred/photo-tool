@@ -21,7 +21,7 @@ h1, h2, p, span, label, input {
         <article>
             <ul>
             {% for album in albums: %}
-                <li><a href="gallery/{{album['gallery'][1]}}">{{ album['gallery'] }}</a>: <a href="album/{{ album['id'] }}">{{ album['title'] }}</a> ({{ album['nb_images'] }} images)</li>
+                <li><a href="gallery/{{ album['gallery'] }}">{{ album['gallery'] }}</a>: <a href="album/{{ album['id'] }}">{{ album['title'] }}</a> ({{ album['nb_images'] }} images)</li>
             {% endfor %}
         </article>
     </body>

@@ -1,0 +1,72 @@
+h1, h2, p, span, label, input {
+    font-family: sans-serif;
+}
+
+@media screen and (max-width:420px) {
+    input.large {
+        width:100%;
+    }
+    input.medium {
+        width:50%;
+    }
+    input.small {
+        width:30%;
+    }
+    div {
+        margin: 0.8rem 0;
+    }
+}
+@media screen and (min-width:420px) {
+    input.large {
+        width:70%;
+    }
+    input.medium {
+        width:50%;
+    }
+    input.small {
+        width:30%;
+    }
+    div {
+        margin: 0.4rem 0;
+    }
+}
+
+input {
+    height: 1.3rem;
+    vertical-align:middle;
+}
+input[type=radio] {
+    margin-bottom: 0.25rem;
+    margin-right: 1.5rem;
+}
+textarea {
+    width: 70.25%;
+}
+input, textarea {
+    padding: 0.2rem;
+}
+article {
+    max-width: 800px;
+    margin: auto;
+}
+section {
+    margin: 0.4rem 0 3rem 0;
+}
+label.main {
+    width: 20%;
+    display: inline-block;
+    text-align: left;
+    padding: 0.2rem;
+    padding-top: 0.4rem;
+    min-width: 6rem;
+    vertical-align:top;
+}
+span {
+    display:inline-block;
+    margin-top:0.4rem;
+}
+h1, h2, img {
+    width:100%;
+    text-align:center;
+    padding:auto;
+}

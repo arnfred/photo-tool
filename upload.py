@@ -48,7 +48,6 @@ def edit_album(album_id):
             album = new_album(album_id)
             album_view = make_album_view(album)
             return render_template('album.html', album=album_view, galleries=galleries, msg="Create new album")
-            return {'error': 'Album "{}" not found'.format(album_id)}, 404
         else:
             most_recent_album = albums_matching_query['Items'][-1]
             album_view = make_album_view(most_recent_album)
@@ -65,18 +64,57 @@ def submit_album(album_id):
     try:
         cur_album = parse_album(form_result, album_id)
         new_images = upload_files(files, album_id)
-        new_album = upload(cur_album, new_images)
+        new_album = upload_album(cur_album, new_images)
         album_view = make_album_view(new_album)
         return render_template('album.html', album=album_view, msg="Album successfully saved")
     except ClientError as e:
         return {'error': e}, 500
 
+@app.route('/gallery/<gallery_id>', methods = ['GET'])
+def edit_gallery(gallery_id):
+	try:
+		galleries_matching_query = dynamodb.Table(galleries_table).query(KeyConditionExpression=Key('id').eq(gallery_id))
+		pprint(galleries_matching_query)
+		if (galleries_matching_query['Count'] == 0):
+			gallery = new_gallery(gallery_id)
+			gallery_view = make_gallery_view(gallery)
+			return render_template('gallery.html', gallery=gallery_view, msg="Create new gallery")
+		else:
+			most_recent_gallery = galleries_matching_query['Items'][-1]
+			gallery_view = make_gallery_view(most_recent_gallery)
+			return render_template('gallery.html', gallery=gallery_view, msg="")
+	except ClientError as e:
+		return {'error': e}, 500
+
+@app.route('/gallery/<gallery_id>', methods = ['POST'])
+def submit_gallery(gallery_id):
+    cur_gallery = request.form
+    table = dynamodb.Table(galleries_table)
+    try:
+        new_gallery = upload_gallery(cur_gallery)
+        gallery_view = make_gallery_view(new_gallery)
+        return render_template('gallery.html', gallery=gallery_view, msg="Gallery successfully saved")
+    except ClientError as e:
+        return {'error': e}, 500
+
+
 def make_album_view(album):
-    images = [{**im, 
+    images = [(i+1, {
+		**im, 
         'size': ",".join([str(s) for s in im['size']]),
         'published': im.get('published', True)
-    } for im in album['images']]
-    return {**album, 'images': [(i+1, im) for i, im in enumerate(images)] }
+        }) for i, im in enumerate(album['images'])]
+    return {
+		**album, 
+		'description': album['description'].strip(),
+		'images': images
+	}
+
+def make_gallery_view(gallery):
+	return {
+		**gallery,
+		'description': gallery['description'].strip()
+	}
 
 def parse_album(res, url):
     unordered_images = [parse_image(im, res) for im in res.getlist('images[]')]
@@ -84,25 +122,31 @@ def parse_album(res, url):
     pprint(ordered_images)
     images = [im[1] for im in ordered_images]
     return {
-        'title': res['title'],
-        'url': url,
-        'galleries': ['all', res['gallery']],
-        'description': res['description'],
-        'public': res['public'] is 'true',
-        'images': images
-    }
+            'title': res['title'],
+            'url': url,
+            'galleries': ['all', res['gallery']],
+            'description': res['description'],
+            'public': res['public'] is 'true',
+            'images': images
+            }
 
 def new_album(album_id):
     return {
-        'id': album_id,
-        'title': '',
-        'url': album_id,
-        'galleries': ['all', 'gallery-name'],
-        'description': '',
-        'public': True,
-        'images': []
-    }
+            'id': album_id,
+            'title': '',
+            'url': album_id,
+            'galleries': ['all', 'gallery-name'],
+            'description': '',
+            'public': True,
+            'images': []
+            }
 
+def new_gallery(gallery_id):
+    return {
+	        'id': gallery_id,
+			'url': gallery_id,
+			'description': ''
+			}
 
 def parse_image(image_name, res):
     d = { key.split("-")[0]: val for key, val in res.items() if image_name in key }
@@ -110,16 +154,34 @@ def parse_image(image_name, res):
     order = d['order']
     fmt = "%Y-%m-%dT%H:%M:%S"
     return order, {
-        'description': d['description'],
-        'file': image_name,
-        'banner': d['banner'] == 'true',
-        'size': [int(s) for s in d['size'].split(",")],
-        'cover': d['cover'] == 'true',
-        'published': d['published'] == 'true',
-        'datetime': d['datetime']
-    }
+            'description': d['description'],
+            'file': image_name,
+            'banner': d['banner'] == 'true',
+            'size': [int(s) for s in d['size'].split(",")],
+            'cover': d['cover'] == 'true',
+            'published': d['published'] == 'true',
+            'datetime': d['datetime']
+            }
 
-def upload(album, new_images):
+def upload_gallery(gallery):
+    # Clean config of empty strings
+    for key, val in gallery.items():
+        if val == "":
+            gallery[key] = None
+
+    # Upload config to dynamoDB
+    table = dynamodb.Table(galleries_table)
+    gallery_config = { 
+			**gallery,
+			'id': gallery['url']
+	}
+    try:
+        table.put_item(Item=gallery_config)
+    except ClientError as e:
+        print(e)
+    return gallery_config
+
+def upload_album(album, new_images):
     # Clean config of empty strings
     for key, val in album.items():
         if val == "":
@@ -135,10 +197,10 @@ def upload(album, new_images):
     # Upload config to dynamoDB
     table = dynamodb.Table(albums_table)
     album_config = { 
-        'id': album['url'], 
-        'timestamp': int(datetime.now().timestamp()), 
-        **album,
-        'images': images }
+            'id': album['url'], 
+            'timestamp': int(datetime.now().timestamp()), 
+            **album,
+            'images': images }
     try:
         table.put_item(Item=album_config)
     except ClientError as e:

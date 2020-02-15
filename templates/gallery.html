@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+    <head>
+        <title>{{ gallery['url'] }}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="{{ url_for('static', filename='edit.css') }}">
+
+    </head>
+
+    <body>
+        <header>
+            <h1>{{ gallery['url'] }}</h1>
+
+            <article>
+                <p>{{ msg }}</p>
+            </article>
+        </header>
+
+        <main>
+            <form id="album" enctype="multipart/form-data" method="post" action="/gallery/{{ gallery['url'] }}">
+                <article>
+                    <h2>Gallery Info</h2>
+
+                    <section>
+                        <div>
+                            <label class="main" for="name">Gallery Name:</label>
+                            <input type="input" class="medium" id="name" name="name" value="{{ gallery['name'] }}">
+                        </div>
+
+                        <div>
+                            <label class="main" for="description">Description:</label>
+                            <textarea id="description" name="description" rows="5" cols="33">{{ gallery['description'] }}</textarea>
+                        </div>
+                        <input id="url" name="url" type="hidden" value="{{ gallery['url'] }}" />
+					</section>
+					<section>
+                        <input type="submit" value="submit" id="submit" />
+					</section>
+				</article>
+			</form>
+		</main>
+	</body>
+</html>
