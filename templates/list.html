@@ -19,7 +19,6 @@ h1, h2, p, span, label, input {
         </header>
 
         <article>
-            <p>{{ msg }}</p>
             <ul>
             {% for album in albums: %}
                 <li><a href="gallery/{{album['gallery'][1]}}">{{ album['gallery'] }}</a>: <a href="album/{{ album['id'] }}">{{ album['title'] }}</a> ({{ album['nb_images'] }} images)</li>

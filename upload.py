@@ -43,6 +43,9 @@ def edit_album(album_id):
     try:
         albums_matching_query = table.query(KeyConditionExpression=Key('id').eq(album_id))
         if (albums_matching_query['Count'] == 0):
+            album = new_album(album_id)
+            album_view = make_album_view(album)
+            return render_template('album.html', album=album_view, msg="Create new album")
             return {'error': 'Album "{}" not found'.format(album_id)}, 404
         else:
             most_recent_album = albums_matching_query['Items'][-1]
@@ -86,6 +89,18 @@ def parse_album(res, url):
         'public': res['public'] is 'true',
         'images': images
     }
+
+def new_album(album_id):
+    return {
+        'id': album_id,
+        'title': '',
+        'url': album_id,
+        'galleries': ['all', 'gallery-name'],
+        'description': '',
+        'public': True,
+        'images': []
+    }
+
 
 def parse_image(image_name, res):
     d = { key.split("-")[0]: val for key, val in res.items() if image_name in key }
