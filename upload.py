@@ -15,6 +15,7 @@ s3 = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 images_bucket = os.environ['IMAGES_BUCKET']
 albums_table = os.environ['ALBUMS_TABLE']
+galleries_table = os.environ['GALLERIES_TABLE']
 app = Flask(__name__)
 
 @app.route('/', methods =['GET'])
@@ -39,19 +40,20 @@ def view_albums():
 
 @app.route('/album/<album_id>', methods = ['GET'])
 def edit_album(album_id):
-    table = dynamodb.Table(albums_table)
     try:
-        albums_matching_query = table.query(KeyConditionExpression=Key('id').eq(album_id))
+        galleries_response = dynamodb.Table(galleries_table).scan()
+        galleries = galleries_response['Items']
+        albums_matching_query = dynamodb.Table(albums_table).query(KeyConditionExpression=Key('id').eq(album_id))
         if (albums_matching_query['Count'] == 0):
             album = new_album(album_id)
             album_view = make_album_view(album)
-            return render_template('album.html', album=album_view, msg="Create new album")
+            return render_template('album.html', album=album_view, galleries=galleries, msg="Create new album")
             return {'error': 'Album "{}" not found'.format(album_id)}, 404
         else:
             most_recent_album = albums_matching_query['Items'][-1]
             album_view = make_album_view(most_recent_album)
             pprint(most_recent_album)
-            return render_template('album.html', album=album_view, msg="")
+            return render_template('album.html', album=album_view, galleries=galleries, msg="")
     except ClientError as e:
         return {'error': e}, 500
 
@@ -74,7 +76,7 @@ def make_album_view(album):
         'size': ",".join([str(s) for s in im['size']]),
         'published': im.get('published', True)
     } for im in album['images']]
-    return {**album, 'images': enumerate(images) }
+    return {**album, 'images': [(i+1, im) for i, im in enumerate(images)] }
 
 def parse_album(res, url):
     unordered_images = [parse_image(im, res) for im in res.getlist('images[]')]

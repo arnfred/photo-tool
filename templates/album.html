@@ -112,7 +112,13 @@ h1, h2, img {
 
                         <div>
                             <label class="main" for="gallery">Gallery:</label>
-                            <input id="gallery" class="large" name="gallery" value="{{ album['galleries'][1] }}" required/>
+                            <input list="gallery" class="large" name="gallery" value="{{ album['galleries'][1] }}" required/>
+
+                            <datalist id="gallery">
+                    		{% for gallery in galleries: %}
+                                  <option value="{{ gallery['url'] }}">
+                    		{% endfor %}
+			    </datalist>
                         </div>
 
                         <div>
@@ -173,6 +179,11 @@ h1, h2, img {
                             <input type="radio" id="published-true-{{ image['file'] }}" name="published-{{ image['file'] }}" value="true" {{ "checked=checked" if image['published'] else "" }}>
                             <label for="published-{{ image['file'] }}">No</label>
                             <input type="radio" id="published-false-{{ image['file'] }}" name="published-{{ image['file'] }}" value="false" {{ "" if image['published'] else "checked=checked" }}>
+                        </div>
+
+                        <div>
+                            <label class="main" for="sized-{{ image['file'] }}">Size:</label>
+                            <span>{{ image['size'] }}</span>
                         </div>
 
                         <input type="hidden" id="size-{{ image['file'] }}" name="size-{{ image['file'] }}" value="{{ image['size'] }}"/>
