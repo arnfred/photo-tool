@@ -49,3 +49,28 @@ env $(cat aws.test.env) flask run
 ```
 
 Now you can access the server in your browser on `http://localhost:5000/album/<album_id>`. Try e.g. [album/koli](http://localhost:5000/album/koli).
+
+# Setting up Dokku
+
+I'm adding a bit of info on setting up new services on my host here, since I don't have any information on that anywhere else.
+
+To set up a new service, use this guide: http://dokku.viewdocs.io/dokku/deployment/application-deployment/
+
+```
+ssh dynkarken.com
+dokku apps:create photo-tools
+```
+
+Then locally, add dynkarken as a git remote:
+
+```
+git remote add dynkarken dokku@dynkarken.com:photo-tools
+```
+
+Next to set up the environment for the app, copy the local env file and ssh onto dynkarken.com, then set the config for the app:
+
+```
+dokku config:set photo-tools <ENV key value pairs with = between>
+```
+
+
