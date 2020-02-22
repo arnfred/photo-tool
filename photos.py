@@ -2,7 +2,6 @@
 
 import os
 import fnmatch
-import upload
 import pprint
 import json
 from PIL import Image
@@ -522,6 +521,7 @@ def publish(directory, temp_dir = "tmp", write_images = True, skip = ["galleries
 
 def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = True):
     configurations = get_confs(directory, "conf")
+    jsons = get_confs(directory, "json")
     for c in configurations:
         if c[1] not in skip:
             print(("parsing '%s'" % c[1]))
@@ -532,6 +532,19 @@ def convert(directory, skip = ["galleries.conf"], dry_run = False, keep_conf = T
             toml_path = "%s/%s.toml" % (c[0], c[1].split(".conf")[0])
             if dry_run:
                 print(("This is a dry-run for converting %s to %s. Output:\n%s" % (c[1], toml_path, toml_album)))
+            else:
+                with open(toml_path, 'w') as f:
+                    print(("Writing out to %s" % toml_path))
+                    toml.dump(parsed_album, f)
+
+    for (path, filename) in jsons:
+        print("Parsing '{}' from json".format(filename))
+        with open("{}/{}".format(path, filename)) as json_data:
+            parsed_album = json.load(json_data)
+            toml_album = toml.dumps(parsed_album)
+            toml_path = "%s/%s.toml" % (path, filename.split(".json")[0])
+            if dry_run:
+                print(("This is a dry-run for converting %s to %s. Output:\n%s" % (filename, toml_path, toml_album)))
             else:
                 with open(toml_path, 'w') as f:
                     print(("Writing out to %s" % toml_path))
@@ -587,7 +600,10 @@ def upload(album, temp_dir, write_images=True):
     # Upload config to dynamoDB
     table = dynamodb.Table(albums_table)
     for im in album['images']:
-        im['datetime'] = im.get('datetime', datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")
+        if isinstance(im['datetime'], str):
+            pass
+        else:
+            im['datetime'] = im.get('datetime', datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")
     album_config = { 'id': album['url'], **album }
     try:
         pprint.pprint(album_config)

@@ -45,10 +45,10 @@ To run the http server for the album edit page locally, first go through the ste
 
 ```
 export FLASK_APP=upload.py
-env $(cat aws.test.env) flask run
+env $(cat aws.prod.env) gunicorn upload:app --timeout 99999
 ```
 
-Now you can access the server in your browser on `http://localhost:5000/album/<album_id>`. Try e.g. [album/koli](http://localhost:5000/album/koli).
+Now you can access the server in your browser on `http://localhost:8000`. The `--timeout` is added to make sure gunicorn is patient and waits for the photo upload to complete before shutting down threads.
 
 # Setting up Dokku
 

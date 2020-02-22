@@ -190,6 +190,10 @@ def upload_album(album, new_images):
     images = album['images'] + new_images
     pprint(images)
     for im in images:
+        if isinstance(im['datetime'], str):
+            pass
+        else:
+            im['datetime'] = im.get('datetime', datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")
         for key, val in im.items():
             if val == "":
                 im[key] = None
@@ -208,7 +212,7 @@ def upload_album(album, new_images):
     return album_config
 
 def acceptable_image(filename):
-    print("Testing {}".format(filename))
+    print("Testing if '{}' is a jpg file".format(filename))
     res = (filename != '') and (filename.lower()[-3:] == "jpg")
     print("Result was {}".format(res))
     return res
@@ -230,9 +234,11 @@ def resize(image_path, new_width, new_height, temp_dir):
             image = image.crop((0, margin, width, height - margin))
 
     image.thumbnail((new_width, new_height), Image.ANTIALIAS)
-    image_path = "%s/%s_%ix%i.jpg" % (temp_dir, image_name, new_width, new_height)
+    resized_name = "%s_%ix%i.jpg" % (image_name, new_width, new_height)
+    image_path = "%s/%s" % (temp_dir, resized_name)
+    print("Saving '{}' to '{}'".format(image_name, image_path))
     image.save(image_path, "JPEG", quality=92)
-    return image_path
+    return resized_name
 
 def upload_files(files, album_id):
     images = files.getlist('new-images')
@@ -247,8 +253,8 @@ def upload_files(files, album_id):
         path = os.path.join(temp_dir, im.filename)
         im.save(path)
         for (width, height) in image_sizes:
-            resized_path = resize(path, width, height, temp_dir)
-            upload_s3(im.filename, album_id, temp_dir, images_bucket)
+            resized_name = resize(path, width, height, temp_dir)
+            upload_s3(resized_name, album_id, temp_dir, images_bucket)
 
         original_file = "{}_original.jpg".format(im.filename[:-4])
         original_path = "{}/{}".format(temp_dir, original_file)
