@@ -114,8 +114,8 @@ def make_album_view(album):
     images = [(i+1, {
 		**im, 
         'size': ",".join([str(s) for s in im['size']]),
-        'published': im.get('published', True),
-        'description': im.get('description', '')
+        'description': im['description'] if im['description'] else "",
+        'published': im.get('published', True)
         }) for i, im in enumerate(album['images'])]
     return {
 		**album, 
