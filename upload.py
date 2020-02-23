@@ -119,7 +119,7 @@ def make_album_view(album):
         }) for i, im in enumerate(album['images'])]
     return {
 		**album, 
-		'description': album['description'].strip(),
+		'description': album['description'].strip() if album['description'] else "",
 		'images': images
 	}
 
