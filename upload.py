@@ -132,14 +132,13 @@ def make_gallery_view(gallery):
 def parse_album(res, url):
     unordered_images = [parse_image(im, res) for im in res.getlist('images[]')]
     ordered_images = sorted(unordered_images, key=lambda im: float(im[0]))
-    pprint(ordered_images)
     images = [im[1] for im in ordered_images]
     return {
             'title': res['title'],
             'url': url,
             'galleries': ['all', res['gallery']],
             'description': res['description'],
-            'public': res['public'] is 'true',
+            'public': res['public'] == 'true',
             'images': images
             }
 
