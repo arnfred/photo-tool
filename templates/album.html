@@ -17,7 +17,7 @@
         </header>
 
         <main>
-            <form id="album" enctype="multipart/form-data" method="post" action="/album/{{ album['url'] }}">
+            <form id="album" enctype="multipart/form-data" method="post">
                 <article>
                     <h2>Album Info</h2>
 
@@ -117,7 +117,10 @@
                     <section>
                         <h2>Upload Images</h2>
                         <input id="fileupload" name="new-images" type="file" multiple/>
-                        <input type="submit" value="submit" id="submit" />
+                    </section>
+                    <section>
+                        <button type="submit" id="submit" formaction="/album/{{ album['url'] }}">Save</button>
+                        <button type="submit" id="reorder" formaction="/album/{{ album['url'] }}/order_by_date">Order By Date</button>
                     </section>
                 </article>
             </form>

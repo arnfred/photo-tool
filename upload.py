@@ -56,11 +56,24 @@ def edit_album(album_id):
     except ClientError as e:
         return {'error': e}, 500
 
+@app.route('/album/<album_id>/order_by_date', methods = ['POST'])
+def reorder_album(album_id):
+    form_result = request.form
+    files = request.files
+    try:
+        cur_album = parse_album(form_result, album_id)
+        new_images = upload_files(files, album_id)
+        new_album = upload_album(cur_album, new_images)
+        new_album['images'] = sorted(new_album['images'], key=lambda im: im['datetime'])
+        album_view = make_album_view(new_album)
+        return render_template('album.html', album=album_view, msg="Album successfully reordered")
+    except ClientError as e:
+        return {'error': e}, 500
+
 @app.route('/album/<album_id>', methods = ['POST'])
 def submit_album(album_id):
     form_result = request.form
     files = request.files
-    table = dynamodb.Table(albums_table)
     try:
         cur_album = parse_album(form_result, album_id)
         new_images = upload_files(files, album_id)
@@ -97,12 +110,12 @@ def submit_gallery(gallery_id):
     except ClientError as e:
         return {'error': e}, 500
 
-
 def make_album_view(album):
     images = [(i+1, {
 		**im, 
         'size': ",".join([str(s) for s in im['size']]),
-        'published': im.get('published', True)
+        'published': im.get('published', True),
+        'description': im.get('description', '')
         }) for i, im in enumerate(album['images'])]
     return {
 		**album, 
@@ -150,7 +163,6 @@ def new_gallery(gallery_id):
 
 def parse_image(image_name, res):
     d = { key.split("-")[0]: val for key, val in res.items() if image_name in key }
-    pprint(d)
     order = d['order']
     fmt = "%Y-%m-%dT%H:%M:%S"
     return order, {
@@ -188,7 +200,6 @@ def upload_album(album, new_images):
             album[key] = None
 
     images = album['images'] + new_images
-    pprint(images)
     for im in images:
         if isinstance(im['datetime'], str):
             pass

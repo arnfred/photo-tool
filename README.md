@@ -44,7 +44,6 @@ env $(cat aws.test.env) photos.py publish -d .
 To run the http server for the album edit page locally, first go through the steps for setting up a virtual environment and installing dependencies (listed above), then do the following:
 
 ```
-export FLASK_APP=upload.py
 env $(cat aws.prod.env) gunicorn upload:app --timeout 99999
 ```
 
