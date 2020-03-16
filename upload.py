@@ -65,7 +65,8 @@ def reorder_album(album_id):
         new_images = upload_files(files, album_id)
         new_album = upload_album(cur_album, new_images)
         new_album['images'] = sorted(new_album['images'], key=lambda im: im['datetime'])
-        album_view = make_album_view(new_album)
+        pprint(new_images)
+        album_view = make_album_view(new_album, new_images)
         return render_template('album.html', album=album_view, msg="Album successfully reordered")
     except ClientError as e:
         return {'error': e}, 500
@@ -78,7 +79,8 @@ def submit_album(album_id):
         cur_album = parse_album(form_result, album_id)
         new_images = upload_files(files, album_id)
         new_album = upload_album(cur_album, new_images)
-        album_view = make_album_view(new_album)
+        pprint(new_images)
+        album_view = make_album_view(new_album, new_images)
         return render_template('album.html', album=album_view, msg="Album successfully saved")
     except ClientError as e:
         return {'error': e}, 500
@@ -109,12 +111,14 @@ def submit_gallery(gallery_id):
     except ClientError as e:
         return {'error': e}, 500
 
-def make_album_view(album):
+def make_album_view(album, new_images = []):
+    new_files = set([im['file'] for im in new_images])
+    pprint(new_files)
     images = [(i+1, {
 		**im, 
         'size': ",".join([str(s) for s in im['size']]),
-        'description': im['description'] if im['description'] else "",
-        'published': im.get('published', True)
+        'description': im['description'].strip() if im['description'] else "",
+        'published': True if im['file'] in new_files else im.get('published', True)
         }) for i, im in enumerate(album['images'])]
     return {
 		**album, 
