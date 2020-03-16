@@ -94,7 +94,8 @@
 
                         <div>
                             <label class="main">Info:</label>
-			    <span>Index #{{ idx }}: {{ image['file'] }}.jpg ({{ image['size'] }})</span>
+			    <span>Index #{{ idx }}: {{ image['file'] }}.jpg ({{ image['size'] }})</span><br>
+			    <button class="button" type="submit" id="remove-image" formaction="/album/{{ album['url'] }}/remove/{{ image['file'] }}">Remove</button>
                         </div>
 
                         <input type="hidden" class="small" id="order-{{ image['file'] }}" name="order-{{ image['file'] }}" value="{{idx}}.0">

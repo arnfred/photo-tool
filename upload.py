@@ -84,13 +84,24 @@ def album_upload(album_id):
 @app.route('/album/<album_id>/reorder', methods = ['POST'])
 def album_reorder(album_id):
     form_result = request.form
-    files = request.files
     try:
         cur_album = parse_album(form_result, album_id)
         album_config = make_album_config(cur_album)
         album_config['images'] = sorted(album_config['images'], key=lambda im: im['datetime'])
         album_view = make_album_view(album_config)
         return render_template('album.html', album=album_view, msg="Album Images Reordered")
+    except ClientError as e:
+        return {'error': e}, 500
+
+@app.route('/album/<album_id>/remove/<image_id>', methods = ['POST'])
+def image_remove(album_id, image_id):
+    form_result = request.form
+    try:
+        cur_album = parse_album(form_result, album_id)
+        album_config = make_album_config(cur_album)
+        album_config['images'] = [im for im in album_config['images'] if im['file'] != image_id]
+        album_view = make_album_view(album_config)
+        return render_template('album.html', album=album_view, msg="Removed Image: " + image_id)
     except ClientError as e:
         return {'error': e}, 500
 
