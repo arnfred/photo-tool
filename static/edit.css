@@ -43,6 +43,9 @@ input[type=radio] {
     margin-bottom: 0.25rem;
     margin-right: 1.5rem;
 }
+input.option {
+    margin: 0 1rem 0.1rem 0.4rem
+}
 textarea {
     width: 70.25%;
 }
@@ -77,7 +80,7 @@ img {
 
 .button {
     font-size: 100%;
-    padding: .5em 1em;
+    padding: .5rem 1rem;
     color: rgba(0,0,0,.8);
     border: 1px solid #999;
     background-color: #e6e6e68c;
@@ -90,4 +93,8 @@ img {
     text-align: center;
     cursor: pointer;
     margin: 0.2rem 0;
+}
+
+#fileupload {
+    padding: 0.45rem 1rem;
 }

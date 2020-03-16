@@ -149,7 +149,7 @@ def parse_album(res, url):
             'url': url,
             'galleries': ['all', res['gallery']],
             'description': res['description'],
-            'public': res['public'] == 'true',
+            'public': res.get('public') == 'true',
             'images': images
             }
 
@@ -173,15 +173,15 @@ def new_gallery(gallery_id):
 
 def parse_image(image_name, res):
     d = { key.split("-")[0]: val for key, val in res.items() if image_name in key }
-    order = d['order']
+    order = d.get('order', 0)
     fmt = "%Y-%m-%dT%H:%M:%S"
     return order, {
             'description': d['description'],
             'file': image_name,
-            'banner': d['banner'] == 'true',
+            'banner': d.get('banner') == 'true',
             'size': [int(s) for s in d['size'].split(",")],
-            'cover': d['cover'] == 'true',
-            'published': d['published'] == 'true',
+            'cover': d.get('cover') == 'true',
+            'published': d.get('published') == 'true',
             'datetime': d['datetime']
             }
 

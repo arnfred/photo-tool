@@ -20,10 +20,12 @@
             <form id="album" enctype="multipart/form-data" method="post">
                 <article>
 
-		    <h2>Upload Images</h2>
+		    <h2>Album Actions</h2>
                     <section>
-			    <input class="button" id="fileupload" name="new-images" type="file" multiple/>
-			<button class="button" type="submit" id="upload" formaction="/album/{{ album['url'] }}/upload">Upload Images</button>
+			<input class="button" id="fileupload" name="new-images" type="file" multiple/>
+			<button class="button" type="submit" id="upload" formaction="/album/{{ album['url'] }}/upload">Upload Images</button><br>
+                        <button class="button" type="submit" id="save" formaction="/album/{{ album['url'] }}/save">Save Album</button>
+			<button class="button" type="submit" id="reorder" formaction="/album/{{ album['url'] }}/reorder">Order Images by Date</button>
                     </section>
 
                     <h2>Album Info</h2>
@@ -35,14 +37,14 @@
 
                         <div>
                             <label class="main" for="description">Description:</label>
-                            <textarea id="description" name="description" rows="5" cols="33">{{ album['description'] }}</textarea>
+                            <textarea name="description" rows="5" cols="33">{{ album['description'] }}</textarea>
                         </div>
 
                         <div>
-                            <label class="main" for="gallery">Gallery:</label>
-                            <input list="gallery" class="large" name="gallery" value="{{ album['galleries'][1] }}" required/>
+			    <label class="main" for="gallery">Gallery:</label>
+                            <input list="gallery-items" class="large" name="gallery" id="gallery" value="{{ album['galleries'][1] }}" required/>
 
-                            <datalist id="gallery">
+                            <datalist id="gallery-items">
                     		{% for gallery in galleries: %}
                                   <option value="{{ gallery['url'] }}">
                     		{% endfor %}
@@ -55,11 +57,8 @@
                         </div>
 
                         <div>
-                            <label class="main" for="public">Public:</label>
-                            <label for="public-true">Yes</label>
-                            <input type="radio" id="public-true" name="public" value="true" {{ "checked" if album['public'] else "" }}>
-                            <label for="public-false">No</label>
-                            <input type="radio" id="public-false" name="public" value="false" {{ "" if album['public'] else "checked" }}>
+			    <label class="main" for="public">Public:</label>
+			    <input type="checkbox" name="public" id="public" value="true" {{ "checked" if album['public'] else "" }}>
                         </div>
                     </section>
                     
@@ -75,46 +74,32 @@
                         </div>
 
                         <div>
-                            <label class="main" for="order-{{ image['file'] }}">Index:</label>
-                            <input type="text" id="order-{{ image['file'] }}" class="small" name="order-{{ image['file'] }}" value="{{idx}}.0" />
-                        </div>
-
-                        <div>
-                            <label class="main" for="banner-{{ image['file'] }}">Banner:</label>
-                            <label for="banner-true-{{ image['file'] }}">Yes</label>
-                            <input type="radio" id="banner-true-{{ image['file'] }}" name="banner-{{ image['file'] }}" value="true" {{ "checked=checked" if image['banner'] else "" }}>
-                            <label for="banner-false-{{ image['file'] }}">No</label>
-                            <input type="radio" id="banner-false-{{ image['file'] }}" name="banner-{{ image['file'] }}" value="false" {{ "" if image['banner'] else "checked=checked" }}>
-                        </div>
-
-                        <div>
-                            <label class="main" for="cover-{{ image['file'] }}">Cover:</label>
-                            <label for="cover-true-{{ image['file'] }}">Yes</label>
-                            <input type="radio" id="cover-true-{{ image['file'] }}" name="cover-{{ image['file'] }}" value="true" {{ "checked=checked" if image['cover'] else "" }}>
-                            <label for="cover-false-{{ image['file'] }}">No</label>
-                            <input type="radio" id="cover-false-{{ image['file'] }}" name="cover-{{ image['file'] }}" value="false" {{ "" if image['cover'] else "checked=checked" }}>
-                        </div>
-
-                        <div>
                             <label class="main" for="datetime-{{ image['file'] }}">Date & Time: </label>
-                            <input id="datetime-{{ image['file'] }}" class="medium" name="datetime-{{ image['file'] }}" value="{{ image['datetime'] }}" type="text" required/>
+                            <input class="medium" id="datetime-{{ image['file'] }}" name="datetime-{{ image['file'] }}" value="{{ image['datetime'] }}" type="text" required/>
+                        </div>
+
+
+                        <div>
+			    <label class="main">Options:</label>
+
+                            <label for="banner-{{ image['file'] }}">Banner:</label>
+			    <input class="option" type="checkbox" id="banner-{{ image['file'] }}" name="banner-{{ image['file'] }}" value="true" {{ "checked" if image['banner'] else "" }}>
+
+                            <label for="cover-{{ image['file'] }}">Cover:</label>
+			    <input class="option" type="checkbox" id="cover-{{ image['file'] }}" name="cover-{{ image['file'] }}" value="true" {{ "checked" if image['cover'] else "" }}>
+
+                            <label for="published-{{ image['file'] }}">Published:</label>
+			    <input class="option" type="checkbox" id="published-{{ image['file'] }}" name="published-{{ image['file'] }}" value="true" {{ "checked" if image['published'] else "" }}>
                         </div>
 
                         <div>
-                            <label class="main" for="published-{{ image['file'] }}">Published:</label>
-                            <label for="published-{{ image['file'] }}">Yes</label>
-                            <input type="radio" id="published-true-{{ image['file'] }}" name="published-{{ image['file'] }}" value="true" {{ "checked=checked" if image['published'] else "" }}>
-                            <label for="published-{{ image['file'] }}">No</label>
-                            <input type="radio" id="published-false-{{ image['file'] }}" name="published-{{ image['file'] }}" value="false" {{ "" if image['published'] else "checked=checked" }}>
+                            <label class="main">Info:</label>
+			    <span>Index #{{ idx }}: {{ image['file'] }}.jpg ({{ image['size'] }})</span>
                         </div>
 
-                        <div>
-                            <label class="main" for="sized-{{ image['file'] }}">Size:</label>
-                            <span>{{ image['size'] }}</span>
-                        </div>
-
-                        <input type="hidden" id="size-{{ image['file'] }}" name="size-{{ image['file'] }}" value="{{ image['size'] }}"/>
-                        <input id="images-names" name="images[]" type="hidden" value="{{ image['file'] }}" />
+                        <input type="hidden" class="small" id="order-{{ image['file'] }}" name="order-{{ image['file'] }}" value="{{idx}}.0">
+                        <input type="hidden" id="size-{{ image['file'] }}" name="size-{{ image['file'] }}" value="{{ image['size'] }}">
+                        <input id="images-names" name="images[]" type="hidden" value="{{ image['file'] }}">
 
                     </section>
                     {% endfor %}
