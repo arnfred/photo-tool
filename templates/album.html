@@ -9,9 +9,9 @@
 
     <body>
         <header>
-            <h1>{{ album['title'] }}</h1>
 
             <article>
+            	<h1>{{ album['title'] }}</h1>
                 <p>{{ msg }}</p>
             </article>
         </header>
@@ -19,8 +19,14 @@
         <main>
             <form id="album" enctype="multipart/form-data" method="post">
                 <article>
-                    <h2>Album Info</h2>
 
+		    <h2>Upload Images</h2>
+                    <section>
+			    <input class="button" id="fileupload" name="new-images" type="file" multiple/>
+			<button class="button" type="submit" id="upload" formaction="/album/{{ album['url'] }}/upload">Upload Images</button>
+                    </section>
+
+                    <h2>Album Info</h2>
                     <section>
                         <div>
                             <label class="main" for="title">Album Title:</label>
@@ -57,7 +63,6 @@
                         </div>
                     </section>
                     
-
 
                     <h2>Images</h2>
                     {% for idx, image in album['images']: %}
@@ -115,12 +120,8 @@
                     {% endfor %}
 
                     <section>
-                        <h2>Upload Images</h2>
-                        <input id="fileupload" name="new-images" type="file" multiple/>
-                    </section>
-                    <section>
-                        <button type="submit" id="submit" formaction="/album/{{ album['url'] }}">Save</button>
-                        <button type="submit" id="reorder" formaction="/album/{{ album['url'] }}/order_by_date">Order By Date</button>
+                        <button class="button" type="submit" id="save" formaction="/album/{{ album['url'] }}/save">Save Album</button>
+			<button class="button" type="submit" id="reorder" formaction="/album/{{ album['url'] }}/reorder">Order Images by Date</button>
                     </section>
                 </article>
             </form>

@@ -56,32 +56,41 @@ def edit_album(album_id):
     except ClientError as e:
         return {'error': e}, 500
 
-@app.route('/album/<album_id>/order_by_date', methods = ['POST'])
-def reorder_album(album_id):
+@app.route('/album/<album_id>/save', methods = ['POST'])
+def album_save(album_id):
     form_result = request.form
-    files = request.files
     try:
         cur_album = parse_album(form_result, album_id)
-        new_images = upload_files(files, album_id)
-        new_album = upload_album(cur_album, new_images)
-        new_album['images'] = sorted(new_album['images'], key=lambda im: im['datetime'])
-        pprint(new_images)
-        album_view = make_album_view(new_album, new_images)
-        return render_template('album.html', album=album_view, msg="Album successfully reordered")
+        album_config = make_album_config(cur_album)
+        upload_album(album_config)
+        album_view = make_album_view(album_config)
+        return render_template('album.html', album=album_view, msg="Album successfully saved")
     except ClientError as e:
         return {'error': e}, 500
 
-@app.route('/album/<album_id>', methods = ['POST'])
-def submit_album(album_id):
+@app.route('/album/<album_id>/upload', methods = ['POST'])
+def album_upload(album_id):
     form_result = request.form
     files = request.files
     try:
         cur_album = parse_album(form_result, album_id)
         new_images = upload_files(files, album_id)
-        new_album = upload_album(cur_album, new_images)
-        pprint(new_images)
-        album_view = make_album_view(new_album, new_images)
-        return render_template('album.html', album=album_view, msg="Album successfully saved")
+        album_config = make_album_config(cur_album, new_images)
+        album_view = make_album_view(album_config, new_images)
+        return render_template('album.html', album=album_view, msg="Pictures successfully uploaded")
+    except ClientError as e:
+        return {'error': e}, 500
+
+@app.route('/album/<album_id>/reorder', methods = ['POST'])
+def album_reorder(album_id):
+    form_result = request.form
+    files = request.files
+    try:
+        cur_album = parse_album(form_result, album_id)
+        album_config = make_album_config(cur_album)
+        album_config['images'] = sorted(album_config['images'], key=lambda im: im['datetime'])
+        album_view = make_album_view(album_config)
+        return render_template('album.html', album=album_view, msg="Album Images Reordered")
     except ClientError as e:
         return {'error': e}, 500
 
@@ -113,7 +122,6 @@ def submit_gallery(gallery_id):
 
 def make_album_view(album, new_images = []):
     new_files = set([im['file'] for im in new_images])
-    pprint(new_files)
     images = [(i+1, {
 		**im, 
         'size': ",".join([str(s) for s in im['size']]),
@@ -195,7 +203,7 @@ def upload_gallery(gallery):
         print(e)
     return gallery_config
 
-def upload_album(album, new_images):
+def make_album_config(album, new_images = []):
     # Clean config of empty strings
     for key, val in album.items():
         if val == "":
@@ -214,19 +222,18 @@ def upload_album(album, new_images):
         for key, val in im.items():
             if val == "":
                 im[key] = None
+    return { 
+        'id': album['url'], 
+        'timestamp': int(datetime.now().timestamp()), 
+        **album,
+        'images': images }
 
-    # Upload config to dynamoDB
+def upload_album(album_config):
     table = dynamodb.Table(albums_table)
-    album_config = { 
-            'id': album['url'], 
-            'timestamp': int(datetime.now().timestamp()), 
-            **album,
-            'images': images }
     try:
         table.put_item(Item=album_config)
     except ClientError as e:
         print(e)
-    return album_config
 
 def acceptable_image(filename):
     print("Testing if '{}' is a jpg file".format(filename))

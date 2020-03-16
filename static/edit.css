@@ -1,3 +1,7 @@
+h1 {
+    font-size: 2rem;
+}
+
 h1, h2, p, span, label, input {
     font-family: sans-serif;
 }
@@ -65,8 +69,25 @@ span {
     display:inline-block;
     margin-top:0.4rem;
 }
-h1, h2, img {
-    width:100%;
+
+img {
     text-align:center;
     padding:auto;
+}
+
+.button {
+    font-size: 100%;
+    padding: .5em 1em;
+    color: rgba(0,0,0,.8);
+    border: 1px solid #999;
+    background-color: #e6e6e68c;
+    text-decoration: none;
+    border-radius: 2px;
+    display: inline-block;
+    line-height: normal;
+    white-space: nowrap;
+    vertical-align: middle;
+    text-align: center;
+    cursor: pointer;
+    margin: 0.2rem 0;
 }
