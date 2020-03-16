@@ -3,6 +3,7 @@ import pathlib
 import boto3
 import os
 import tempfile
+from functools import reduce
 from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key, Attr
 from pprint import pprint
@@ -51,7 +52,6 @@ def edit_album(album_id):
         else:
             most_recent_album = albums_matching_query['Items'][-1]
             album_view = make_album_view(most_recent_album)
-            pprint(most_recent_album)
             return render_template('album.html', album=album_view, galleries=galleries, msg="")
     except ClientError as e:
         return {'error': e}, 500
@@ -87,7 +87,6 @@ def submit_album(album_id):
 def edit_gallery(gallery_id):
 	try:
 		galleries_matching_query = dynamodb.Table(galleries_table).query(KeyConditionExpression=Key('id').eq(gallery_id))
-		pprint(galleries_matching_query)
 		if (galleries_matching_query['Count'] == 0):
 			gallery = new_gallery(gallery_id)
 			gallery_view = make_gallery_view(gallery)
@@ -198,10 +197,14 @@ def upload_album(album, new_images):
         if val == "":
             album[key] = None
 
-    images = album['images'] + new_images
+    all_images = album['images'] + new_images
+    file_names = lambda image_list: set([im['file'] for im in image_list])
+    images = list(reduce(lambda l, im: l if im['file'] in file_names(l) else l+[im], all_images, []))
     for im in images:
         if isinstance(im['datetime'], str):
             pass
+        elif im['datetime'] is None:
+            im['datetime'] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         else:
             im['datetime'] = im.get('datetime', datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")
         for key, val in im.items():
