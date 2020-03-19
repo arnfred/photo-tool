@@ -76,6 +76,7 @@ def album_upload(album_id):
         cur_album = parse_album(form_result, album_id)
         new_images = upload_files(files, album_id)
         album_config = make_album_config(cur_album, new_images)
+        upload_album(album_config)
         album_view = make_album_view(album_config, new_images)
         return render_template('album.html', album=album_view, msg="Pictures successfully uploaded")
     except ClientError as e:
