@@ -75,7 +75,7 @@ dokku config:set photo-tools <ENV key value pairs with = between>
 To set up the domain, we use the instructions here: http://dokku.viewdocs.io/dokku/configuration/domains/
 
 ```
-dokku domain:add photo-tools blah.ifany.org
+dokku domains:add photo-tools blah.ifany.org
 ```
 
 
