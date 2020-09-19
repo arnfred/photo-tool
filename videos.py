@@ -20,7 +20,7 @@ def video_info(root, video_name, desc, published = True):
 
     # Define what exif data we are interested in and how it is translated
     video_info = ffmpeg.probe('VID_20200906_170652.mp4')['streams'][0]
-    video_dict['datetime'] = video_info['tags']['creation_time']
+    video_dict['datetime'] = video_info['tags']['creation_time'].split(".")[0]
     video_dict['size'] = [video_info['width'], video_info['height']]
     video_dict['is_video'] = True
 
