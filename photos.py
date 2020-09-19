@@ -177,8 +177,8 @@ def get_images(directory):
     return list(sorted(images))
 
 
-def find_image(directory, name):
-    """ Returns the first image in subdirectories of directory that matches name """
+def find_file(directory, name):
+    """ Returns the first file in subdirectories of directory that matches name """
     # find the exact location of a filename that might reside in the subfolder of the root
     for root, dirs, files in os.walk(directory):
         for f in files:
@@ -321,7 +321,7 @@ def image_info(root, image_name, desc, published = True):
     }
 
     # Find image
-    image_path = find_image(root, image_name)
+    image_path = find_file(root, image_name)
     if image_path == None:
         raise Exception("Image %s doesn't exist in %s" % (image_name, root))
 
@@ -477,7 +477,7 @@ def process_album(album_pair, temp_root = "tmp", write_images = True):
         for im_data in info.get('images', []):
             im_file = "%s.jpg" % im_data['file']
             print(("processing %s" % (im_file)))
-            image_path = find_image(album_dir, im_file)
+            image_path = find_file(album_dir, im_file)
             create_images(image_path, temp_dir)
 
     info['timestamp'] = int(time.mktime(datetime.now().timetuple()))

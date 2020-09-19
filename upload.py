@@ -10,6 +10,7 @@ from pprint import pprint
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from photos import image_sizes, upload_s3, image_info
+from videos import video_info
 from PIL import Image
 
 s3 = boto3.client('s3')
@@ -74,10 +75,10 @@ def album_upload(album_id):
     files = request.files
     try:
         cur_album = parse_album(form_result, album_id)
-        new_images = upload_files(files, album_id)
-        album_config = make_album_config(cur_album, new_images)
+        new_media = upload_files(files, album_id)
+        album_config = make_album_config(cur_album, new_media)
         upload_album(album_config)
-        album_view = make_album_view(album_config, new_images)
+        album_view = make_album_view(album_config, new_media)
         return render_template('album.html', album=album_view, msg="Pictures successfully uploaded")
     except ClientError as e:
         return {'error': e}, 500
@@ -138,7 +139,8 @@ def make_album_view(album, new_images = []):
 		**im, 
         'size': ",".join([str(s) for s in im['size']]),
         'description': im['description'].strip() if im['description'] else "",
-        'published': True if im['file'] in new_files else im.get('published', True)
+        'published': True if im['file'] in new_files else im.get('published', True),
+	'is_video': im.get('is_video', False)
         }) for i, im in enumerate(album['images'])]
     return {
 		**album, 
@@ -194,6 +196,7 @@ def parse_image(image_name, res):
             'size': [int(s) for s in d['size'].split(",")],
             'cover': d.get('cover') == 'true',
             'published': d.get('published') == 'true',
+            'is_video': d.get('is_video') == 'True',
             'datetime': d['datetime']
             }
 
@@ -253,6 +256,11 @@ def acceptable_image(filename):
     print("Result was {}".format(res))
     return res
 
+def acceptable_video(filename):
+    print("Testing if '{}' is an mp4 file".format(filename))
+    res = (filename != '') and (filename.lower()[-3:] == "mp4")
+    print("Result was {}".format(res))
+    return res
 
 def resize(image_path, new_width, new_height, temp_dir):
     image_orig = Image.open(image_path)
@@ -277,31 +285,37 @@ def resize(image_path, new_width, new_height, temp_dir):
     return resized_name
 
 def upload_files(files, album_id):
-    images = files.getlist('new-images')
+    media = files.getlist('new-media')
     temp_dir = tempfile.mkdtemp()
     response = s3.list_objects(Bucket=images_bucket, Prefix="albums/{}".format(album_id))
 
-    image_conf = []
-    for im in images:
-        if not acceptable_image(im.filename):
-            continue
+    media_conf = []
+    for medium in media:
+        if acceptable_image(medium.filename):
+            path = os.path.join(temp_dir, medium.filename)
+            medium.save(path)
+            for (width, height) in image_sizes:
+                resized_name = resize(path, width, height, temp_dir)
+                upload_s3(resized_name, album_id, temp_dir, images_bucket)
 
-        path = os.path.join(temp_dir, im.filename)
-        im.save(path)
-        for (width, height) in image_sizes:
-            resized_name = resize(path, width, height, temp_dir)
-            upload_s3(resized_name, album_id, temp_dir, images_bucket)
+            original_file = "{}_original.jpg".format(medium.filename[:-4])
+            original_path = "{}/{}".format(temp_dir, original_file)
+            Image.open(path).save(original_path, "JPEG", quality=92)
+            upload_s3(original_file, album_id, temp_dir, images_bucket)
 
-        original_file = "{}_original.jpg".format(im.filename[:-4])
-        original_path = "{}/{}".format(temp_dir, original_file)
-        Image.open(path).save(original_path, "JPEG", quality=92)
-        upload_s3(original_file, album_id, temp_dir, images_bucket)
+            conf = image_info(temp_dir, medium.filename, "", published = False)
+            conf['size'] = [conf['size'][0], conf['size'][1]]
+            media_conf.append(conf)
 
-        conf = image_info(temp_dir, im.filename, "", published = False)
-        conf['size'] = [conf['size'][0], conf['size'][1]]
-        image_conf.append(conf)
+        elif acceptable_video(medium.filename):
+            path = os.path.join(temp_dir, medium.filename)
+            medium.save(path)
+            upload_s3(medium.filename.lower(), album_id, temp_dir, images_bucket)
 
-    return image_conf
+            conf = video_info(temp_dir, medium.filename, "", published = False)
+            media_conf.append(conf)
+
+    return media_conf
 
 
 if __name__ == '__main__':

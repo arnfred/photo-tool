@@ -78,5 +78,9 @@ To set up the domain, we use the instructions here: http://dokku.viewdocs.io/dok
 dokku domains:add photo-tools blah.ifany.org
 ```
 
+# Adding ffmpeg to server
+
+To read video metadata I'm using ffmpeg. This needs to be installed on the server: `sudo apt install ffmpeg`
+
 
 

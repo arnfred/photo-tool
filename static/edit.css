@@ -58,11 +58,12 @@ span {
     padding: 0.2rem;
 }
 
-img {
+img, video {
     text-align:center;
     margin:auto;
     width:100%;
 }
+
 
 .button {
     font-size: 100%;

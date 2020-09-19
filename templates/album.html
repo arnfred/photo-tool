@@ -22,7 +22,7 @@
 
 		    <h2>Album Actions</h2>
                     <section>
-			<input class="button" id="fileupload" name="new-images" type="file" multiple/>
+			<input class="button" id="fileupload" name="new-media" type="file" multiple/>
 			<button class="button" type="submit" id="upload" formaction="/album/{{ album['url'] }}/upload">Upload Images</button><br>
                         <button class="button" type="submit" id="save" formaction="/album/{{ album['url'] }}/save">Save Album</button>
 			<button class="button" type="submit" id="reorder" formaction="/album/{{ album['url'] }}/reorder">Order Images by Date</button>
@@ -65,43 +65,58 @@
 
                     <h2>Images</h2>
                     {% for idx, image in album['images']: %}
-                    <section>
-                        <img src="http://www.ifany.org/photos/{{ album['url'] }}/{{ image['file'] }}_800x600.jpg">
 
-                        <div>
-                            <label class="main" for="description-{{ image['file'] }}">Description:</label>
-                            <input id="description-{{ image['file'] }}" name="description-{{ image['file'] }}" value="{{ image['description'] }}" type="text" class="large"/>
-                        </div>
+                        <section>
+                            {% if image.is_video %}
 
-                        <div>
-                            <label class="main" for="datetime-{{ image['file'] }}">Date & Time: </label>
-                            <input class="medium" id="datetime-{{ image['file'] }}" name="datetime-{{ image['file'] }}" value="{{ image['datetime'] }}" type="text" required/>
-                        </div>
+                                <video controls><source src="http://www.ifany.org/photos/{{ album['url'] }}/{{ image['file'] }}.mp4" type="video/mp4"></video>
+        
+                            {% else %}
+    
+                                <img src="http://www.ifany.org/photos/{{ album['url'] }}/{{ image['file'] }}_800x600.jpg">
 
+                            {% endif %}
+        
+                            <div>
+                                <label class="main" for="description-{{ image['file'] }}">Description:</label>
+                                <input id="description-{{ image['file'] }}" name="description-{{ image['file'] }}" value="{{ image['description'] }}" type="text" class="large"/>
+                            </div>
+        
+                            <div>
+                                <label class="main" for="datetime-{{ image['file'] }}">Date & Time: </label>
+                                <input class="medium" id="datetime-{{ image['file'] }}" name="datetime-{{ image['file'] }}" value="{{ image['datetime'] }}" type="text" required/>
+                            </div>
+        
+        
+                            <div>
+        		        <label class="main">Options:</label>
+        
+                                <label for="banner-{{ image['file'] }}">Banner:</label>
+        		        <input class="option" type="checkbox" id="banner-{{ image['file'] }}" name="banner-{{ image['file'] }}" value="true" {{ "checked" if image['banner'] else "" }}>
+        
+                                <label for="cover-{{ image['file'] }}">Cover:</label>
+        		        <input class="option" type="checkbox" id="cover-{{ image['file'] }}" name="cover-{{ image['file'] }}" value="true" {{ "checked" if image['cover'] else "" }}>
+        
+                                <label for="published-{{ image['file'] }}">Published:</label>
+        		        <input class="option" type="checkbox" id="published-{{ image['file'] }}" name="published-{{ image['file'] }}" value="true" {{ "checked" if image['published'] else "" }}>
+                            </div>
+        
+                            <div>
+        		        <button class="button" type="submit" id="remove-image" formaction="/album/{{ album['url'] }}/remove/{{ image['file'] }}">Remove</button>
+				            {% if image.is_video %}
+				                <span>{{ image['file'] }}.mp4 ({{ image['size'] }})</span><br>
+                            {% else %}
+				                <span>{{ image['file'] }}.jpg ({{ image['size'] }})</span><br>
+                            {% endif %}
+                            </div>
+        
+                            <input type="hidden" class="small" id="order-{{ image['file'] }}" name="order-{{ image['file'] }}" value="{{idx}}.0">
+                            <input type="hidden" id="size-{{ image['file'] }}" name="size-{{ image['file'] }}" value="{{ image['size'] }}">
+                            <input type="hidden" id="is_video-{{ image['file'] }}" name="is_video-{{ image['file'] }}" value="{{ image['is_video'] }}">
+                            <input id="images-names" name="images[]" type="hidden" value="{{ image['file'] }}">
+        
+                        </section>
 
-                        <div>
-			    <label class="main">Options:</label>
-
-                            <label for="banner-{{ image['file'] }}">Banner:</label>
-			    <input class="option" type="checkbox" id="banner-{{ image['file'] }}" name="banner-{{ image['file'] }}" value="true" {{ "checked" if image['banner'] else "" }}>
-
-                            <label for="cover-{{ image['file'] }}">Cover:</label>
-			    <input class="option" type="checkbox" id="cover-{{ image['file'] }}" name="cover-{{ image['file'] }}" value="true" {{ "checked" if image['cover'] else "" }}>
-
-                            <label for="published-{{ image['file'] }}">Published:</label>
-			    <input class="option" type="checkbox" id="published-{{ image['file'] }}" name="published-{{ image['file'] }}" value="true" {{ "checked" if image['published'] else "" }}>
-                        </div>
-
-                        <div>
-			    <button class="button" type="submit" id="remove-image" formaction="/album/{{ album['url'] }}/remove/{{ image['file'] }}">Remove</button>
-			    <span>{{ image['file'] }}.jpg ({{ image['size'] }})</span><br>
-                        </div>
-
-                        <input type="hidden" class="small" id="order-{{ image['file'] }}" name="order-{{ image['file'] }}" value="{{idx}}.0">
-                        <input type="hidden" id="size-{{ image['file'] }}" name="size-{{ image['file'] }}" value="{{ image['size'] }}">
-                        <input id="images-names" name="images[]" type="hidden" value="{{ image['file'] }}">
-
-                    </section>
                     {% endfor %}
 
                     <section>
