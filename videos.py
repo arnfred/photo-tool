@@ -26,3 +26,6 @@ def video_info(root, video_name, desc, published = True):
 
     # Return resulting dictionary
     return video_dict
+
+def extract_thumb(video_path, thumb_path, width):
+    ffmpeg.input(video_path, ss=0).filter('scale', width, -1).output(thumb_path, vframes=1).run()

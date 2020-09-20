@@ -69,7 +69,9 @@
                         <section>
                             {% if image.is_video %}
 
-                                <video controls><source src="http://www.ifany.org/photos/{{ album['url'] }}/{{ image['file'] }}.mp4" type="video/mp4"></video>
+                                <video controls poster="http://www.ifany.org/photos/{{ album['url'] }}/{{ image['file'] }}_original.jpg">
+                                    <source src="http://www.ifany.org/photos/{{ album['url'] }}/{{ image['file'] }}.mp4" type="video/mp4">
+                                </video>
         
                             {% else %}
     

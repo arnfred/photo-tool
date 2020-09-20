@@ -10,7 +10,7 @@ from pprint import pprint
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from photos import image_sizes, upload_s3, image_info
-from videos import video_info
+from videos import video_info, extract_thumb
 from PIL import Image
 
 s3 = boto3.client('s3')
@@ -299,7 +299,7 @@ def upload_files(files, album_id):
                 upload_s3(resized_name, album_id, temp_dir, images_bucket)
 
             original_file = "{}_original.jpg".format(medium.filename[:-4])
-            original_path = "{}/{}".format(temp_dir, original_file)
+            original_path = os.path.join(temp_dir, original_file)
             Image.open(path).save(original_path, "JPEG", quality=92)
             upload_s3(original_file, album_id, temp_dir, images_bucket)
 
@@ -308,12 +308,27 @@ def upload_files(files, album_id):
             media_conf.append(conf)
 
         elif acceptable_video(medium.filename):
-            path = os.path.join(temp_dir, medium.filename.lower())
+            filename = medium.filename.lower()
+            path = os.path.join(temp_dir, filename)
             medium.save(path)
-            upload_s3(medium.filename.lower(), album_id, temp_dir, images_bucket)
+            upload_s3(filename, album_id, temp_dir, images_bucket)
 
             conf = video_info(temp_dir, medium.filename.lower(), "", published = False)
             media_conf.append(conf)
+
+            # Save thumbnail
+            thumb_name = "{}.jpg".format(filename[:-4])
+            thumb_path = os.path.join(temp_dir, thumb_name)
+            extract_thumb(path, thumb_path, conf['size'][0])
+            for (width, height) in image_sizes:
+                resized_name = resize(thumb_path, width, height, temp_dir)
+                upload_s3(resized_name, album_id, temp_dir, images_bucket)
+
+            # Save thumb original
+            thumb_original_file = "{}_original.jpg".format(thumb_name[:-4])
+            thumb_original_path = os.path.join(temp_dir, thumb_original_file)
+            Image.open(thumb_path).save(thumb_original_path, "JPEG", quality=92)
+            upload_s3(thumb_original_file, album_id, temp_dir, images_bucket)
 
     return media_conf
 
