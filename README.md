@@ -80,7 +80,7 @@ dokku domains:add photo-tools blah.ifany.org
 
 # Adding ffmpeg to server
 
-To read video metadata I'm using ffmpeg. This needs to be installed on the server: `sudo apt install ffmpeg`
+To use the ffmpeg binary from the python app, I've added a ffmpeg buildpack in the `.buildpacks` file
 
 
 
