@@ -308,11 +308,11 @@ def upload_files(files, album_id):
             media_conf.append(conf)
 
         elif acceptable_video(medium.filename):
-            path = os.path.join(temp_dir, medium.filename)
+            path = os.path.join(temp_dir, medium.filename.lower())
             medium.save(path)
             upload_s3(medium.filename.lower(), album_id, temp_dir, images_bucket)
 
-            conf = video_info(temp_dir, medium.filename, "", published = False)
+            conf = video_info(temp_dir, medium.filename.lower(), "", published = False)
             media_conf.append(conf)
 
     return media_conf
