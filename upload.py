@@ -9,7 +9,7 @@ from boto3.dynamodb.conditions import Key, Attr
 from pprint import pprint
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from photos import image_sizes, upload_s3, image_info
+from photos import image_sizes, upload_s3, image_info, image_size
 from videos import video_info, extract_thumb
 from PIL import Image
 
@@ -326,12 +326,12 @@ def upload_files(files, album_id):
             upload_s3(filename, album_id, temp_dir, images_bucket)
 
             conf = video_info(temp_dir, medium.filename.lower(), "", published = False)
-            media_conf.append(conf)
 
             # Save thumbnail
             thumb_name = "{}.jpg".format(filename[:-4])
             thumb_path = os.path.join(temp_dir, thumb_name)
             extract_thumb(path, thumb_path, conf['size'][0])
+            thumb_size = image_size(thumb_path)
             for (width, height) in image_sizes:
                 resized_name = resize(thumb_path, width, height, temp_dir)
                 upload_s3(resized_name, album_id, temp_dir, images_bucket)
@@ -341,6 +341,10 @@ def upload_files(files, album_id):
             thumb_original_path = os.path.join(temp_dir, thumb_original_file)
             Image.open(thumb_path).save(thumb_original_path, "JPEG", quality=92)
             upload_s3(thumb_original_file, album_id, temp_dir, images_bucket)
+
+            # Set media_conf size to thumb size
+            conf['size'] = [thumb_size[0], thumb_size[1]]
+            media_conf.append(conf)
 
     return media_conf
 
