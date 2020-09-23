@@ -13,7 +13,7 @@ from photos import image_sizes, upload_s3, image_info
 from videos import video_info, extract_thumb
 from PIL import Image
 
-s3 = boto3.client('s3')
+s3 = boto3.resource('s3')
 dynamodb = boto3.resource('dynamodb')
 images_bucket = os.environ['IMAGES_BUCKET']
 albums_table = os.environ['ALBUMS_TABLE']
@@ -104,6 +104,18 @@ def image_remove(album_id, image_id):
         album_config['images'] = [im for im in album_config['images'] if im['file'] != image_id]
         album_view = make_album_view(album_config)
         return render_template('album.html', album=album_view, msg="Removed Image: " + image_id)
+    except ClientError as e:
+        return {'error': e}, 500
+
+@app.route('/album/<album_id>/fix_originals', methods = ['POST'])
+def fix_originals(album_id):
+    form_result = request.form
+    try:
+        cur_album = parse_album(form_result, album_id)
+        album_config = make_album_config(cur_album)
+        fixed = [fix_original_image(im, album_id) for im in album_config['images']]
+        album_view = make_album_view(album_config)
+        return render_template('album.html', album=album_view, msg="Fixed following images: {}".format(fixed))
     except ClientError as e:
         return {'error': e}, 500
 
@@ -287,23 +299,23 @@ def resize(image_path, new_width, new_height, temp_dir):
 def upload_files(files, album_id):
     media = files.getlist('new-media')
     temp_dir = tempfile.mkdtemp()
-    response = s3.list_objects(Bucket=images_bucket, Prefix="albums/{}".format(album_id))
 
     media_conf = []
     for medium in media:
         if acceptable_image(medium.filename):
-            path = os.path.join(temp_dir, medium.filename)
+            filename = medium.filename.lower()
+            path = os.path.join(temp_dir, filename)
             medium.save(path)
             for (width, height) in image_sizes:
                 resized_name = resize(path, width, height, temp_dir)
                 upload_s3(resized_name, album_id, temp_dir, images_bucket)
 
-            original_file = "{}_original.jpg".format(medium.filename[:-4])
+            original_file = "{}_original.jpg".format(filename[:-4])
             original_path = os.path.join(temp_dir, original_file)
             Image.open(path).save(original_path, "JPEG", quality=92)
             upload_s3(original_file, album_id, temp_dir, images_bucket)
 
-            conf = image_info(temp_dir, medium.filename, "", published = False)
+            conf = image_info(temp_dir, filename, "", published = False)
             conf['size'] = [conf['size'][0], conf['size'][1]]
             media_conf.append(conf)
 
@@ -331,6 +343,22 @@ def upload_files(files, album_id):
             upload_s3(thumb_original_file, album_id, temp_dir, images_bucket)
 
     return media_conf
+
+def fix_original_image(image, album_id):
+    old_key = "albums/{}/{}_original.jpg".format(album_id, image['file'].upper())
+    new_key = "albums/{}/{}_original.jpg".format(album_id, image['file'].lower())
+    try:
+        s3.Object(bucket_name=images_bucket, key=new_key).get()
+        print("Original already correctly stored: {}".format(new_key))
+        return ""
+    except ClientError:
+        print("Copying {} to {}".format(old_key, new_key))
+        try:
+            s3.Object(images_bucket, new_key).copy_from(CopySource={'Bucket': images_bucket, 'Key': old_key})
+            return new_key
+        except ClientError as ex:
+            print("client error: {}".format(ex))
+            return ""
 
 
 if __name__ == '__main__':
