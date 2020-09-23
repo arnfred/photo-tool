@@ -14,6 +14,7 @@ from videos import video_info, extract_thumb
 from PIL import Image
 
 s3 = boto3.resource('s3')
+s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 images_bucket = os.environ['IMAGES_BUCKET']
 albums_table = os.environ['ALBUMS_TABLE']
@@ -151,6 +152,8 @@ def make_album_view(album, new_images = []):
 		**im, 
         'size': ",".join([str(s) for s in im['size']]),
         'description': im['description'].strip() if im['description'] else "",
+        'image_url': generate_presigned_url(album['id'], im, False),
+        'video_url': generate_presigned_url(album['id'], im, True),
         'published': True if im['file'] in new_files else im.get('published', True),
 	'is_video': im.get('is_video', False)
         }) for i, im in enumerate(album['images'])]
@@ -363,6 +366,24 @@ def fix_original_image(image, album_id):
         except ClientError as ex:
             print("client error: {}".format(ex))
             return ""
+
+def generate_presigned_url(album_id, image, use_video):
+    image_key = "albums/{}/{}_800x600.jpg".format(album_id, image['file'])
+    video_key = "albums/{}/{}.mp4".format(album_id, image['file'])
+    if use_video:
+        key = video_key
+    else:
+        key = image_key
+    try:
+        response = s3_client.generate_presigned_url('get_object',
+                                                    Params={'Bucket': images_bucket,
+                                                            'Key': key},
+                                                    ExpiresIn=60*5)
+    except ClientError as e:
+        print(e)
+        return None
+
+    return response
 
 
 if __name__ == '__main__':
