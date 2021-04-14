@@ -6,7 +6,8 @@ def video_info(root, video_name, desc, published = True):
     """ Generate a dictionary of information about a video """
     # Init video dictionary
     video_dict = {
-        'file' : video_name.lower().split(".mp4")[0],
+        'file' : video_name.lower()[-4:],
+        'extension' : video_name.lower()[-3:],
         'description' : desc.strip(" *"),
         'cover' : len(desc) > 1 and desc[-1] == '*',
         'banner' : len(desc) > 2 and desc[-2] == '*',

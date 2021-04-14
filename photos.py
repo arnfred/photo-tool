@@ -314,6 +314,7 @@ def image_info(root, image_name, desc, published = True):
     # Init image dictionary
     image_dict = {
         'file' : image_name.lower().split(".jpg")[0],
+        'extension' : "jpg",
         'description' : desc.strip(" *"),
         'cover' : len(desc) > 1 and desc[-1] == '*',
         'banner' : len(desc) > 2 and desc[-2] == '*',

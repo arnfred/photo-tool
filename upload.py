@@ -272,8 +272,8 @@ def acceptable_image(filename):
     return res
 
 def acceptable_video(filename):
-    print("Testing if '{}' is an mp4 file".format(filename))
-    res = (filename != '') and (filename.lower()[-3:] == "mp4")
+    print("Testing if '{}' is an mp4 or mov file".format(filename))
+    res = (filename != '') and ((filename.lower()[-3:] == "mp4") or (filename.lower()[-3:] == "mov") or (filename.lower()[-3:] == "m4a"))
     print("Result was {}".format(res))
     return res
 
@@ -369,7 +369,7 @@ def fix_original_image(image, album_id):
 
 def generate_presigned_url(album_id, image, use_video):
     image_key = "albums/{}/{}_800x600.jpg".format(album_id, image['file'])
-    video_key = "albums/{}/{}.mp4".format(album_id, image['file'])
+    video_key = "albums/{}/{}.{}".format(album_id, image['file'], image['extension'])
     if use_video:
         key = video_key
     else:
