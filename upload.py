@@ -267,7 +267,7 @@ def upload_album(album_config):
 
 def acceptable_image(filename):
     print("Testing if '{}' is a jpg file".format(filename))
-    res = (filename != '') and (filename.lower()[-3:] == "jpg")
+    res = (filename != '') and ((filename.lower()[-3:] == "jpg") or (filename.lower()[-4:] == "jpeg"))
     print("Result was {}".format(res))
     return res
 
