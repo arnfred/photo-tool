@@ -10,7 +10,7 @@ from pprint import pprint
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from photos import image_sizes, upload_s3, image_info, image_size
-from videos import video_info, extract_thumb
+from videos import video_info, extract_thumb, reencode_to_mp4
 from PIL import Image
 
 s3 = boto3.resource('s3')
@@ -326,14 +326,16 @@ def upload_files(files, album_id):
             filename = medium.filename.lower()
             path = os.path.join(temp_dir, filename)
             medium.save(path)
-            upload_s3(filename, album_id, temp_dir, images_bucket)
+            mp4_filename = reencode_to_mp4(filename, temp_dir)
+            mp4_path = os.path.join(temp_dir, mp4_filename)
+            upload_s3(mp4_filename, album_id, temp_dir, images_bucket)
 
-            conf = video_info(temp_dir, medium.filename.lower(), "", published = False)
+            conf = video_info(temp_dir, filename, "", published = False)
 
             # Save thumbnail
-            thumb_name = "{}.jpg".format(filename[:-4])
+            thumb_name = "{}.jpg".format(mp4_filename[:-4])
             thumb_path = os.path.join(temp_dir, thumb_name)
-            extract_thumb(path, thumb_path, conf['size'][0])
+            extract_thumb(mp4_path, thumb_path, conf['size'][0])
             thumb_size = image_size(thumb_path)
             for (width, height) in image_sizes:
                 resized_name = resize(thumb_path, width, height, temp_dir)
@@ -369,7 +371,7 @@ def fix_original_image(image, album_id):
 
 def generate_presigned_url(album_id, image, use_video):
     image_key = "albums/{}/{}_800x600.jpg".format(album_id, image['file'])
-    video_key = "albums/{}/{}.{}".format(album_id, image['file'], image['extension'])
+    video_key = "albums/{}/{}.mp4".format(album_id, image['file'])
     if use_video:
         key = video_key
     else:
