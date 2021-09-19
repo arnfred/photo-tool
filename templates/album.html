@@ -49,12 +49,18 @@
                     		{% for gallery in galleries: %}
                                   <option value="{{ gallery['url'] }}">
                     		{% endfor %}
-			    </datalist>
+                            </datalist>
                         </div>
 
                         <div>
                             <label class="main" for="url">URL:</label>
                             <span>/{{ album['url'] }}</span>
+                        </div>
+
+                        <div>
+                            <label class="main" for="password">Password (leave empty if none):</label>
+                            <input id="title" class="small" name="password" value="" type="text"/>
+                            <input id="secret" name="secret" type="hidden" value="{{ album['secret'] }}">
                         </div>
 
                         <div>

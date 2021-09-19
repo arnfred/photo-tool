@@ -1,4 +1,5 @@
 from flask import Flask, escape, request, render_template
+from hashlib import sha256
 import pathlib
 import boto3
 import os
@@ -62,8 +63,7 @@ def edit_album(album_id):
 def album_save(album_id):
     form_result = request.form
     try:
-        cur_album = parse_album(form_result, album_id)
-        album_config = make_album_config(cur_album)
+        album_config = parse_album_config(form_result, album_id)
         upload_album(album_config)
         album_view = make_album_view(album_config)
         return render_template('album.html', album=album_view, msg="Album successfully saved")
@@ -75,9 +75,8 @@ def album_upload(album_id):
     form_result = request.form
     files = request.files
     try:
-        cur_album = parse_album(form_result, album_id)
         new_media = upload_files(files, album_id)
-        album_config = make_album_config(cur_album, new_media)
+        album_config = parse_album_config(form_result, album_id, new_media)
         upload_album(album_config)
         album_view = make_album_view(album_config, new_media)
         return render_template('album.html', album=album_view, msg="Pictures successfully uploaded")
@@ -88,8 +87,7 @@ def album_upload(album_id):
 def album_reorder(album_id):
     form_result = request.form
     try:
-        cur_album = parse_album(form_result, album_id)
-        album_config = make_album_config(cur_album)
+        album_config = parse_album_config(form_result, album_id)
         album_config['images'] = sorted(album_config['images'], key=lambda im: im['datetime'])
         album_view = make_album_view(album_config)
         return render_template('album.html', album=album_view, msg="Album Images Reordered")
@@ -100,8 +98,7 @@ def album_reorder(album_id):
 def image_remove(album_id, image_id):
     form_result = request.form
     try:
-        cur_album = parse_album(form_result, album_id)
-        album_config = make_album_config(cur_album)
+        album_config = parse_album_config(form_result, album_id)
         album_config['images'] = [im for im in album_config['images'] if im['file'] != image_id]
         album_view = make_album_view(album_config)
         return render_template('album.html', album=album_view, msg="Removed Image: " + image_id)
@@ -112,8 +109,7 @@ def image_remove(album_id, image_id):
 def fix_originals(album_id):
     form_result = request.form
     try:
-        cur_album = parse_album(form_result, album_id)
-        album_config = make_album_config(cur_album)
+        album_config = parse_album_config(form_result, album_id)
         fixed = [fix_original_image(im, album_id) for im in album_config['images']]
         album_view = make_album_view(album_config)
         return render_template('album.html', album=album_view, msg="Fixed following images: {}".format(fixed))
@@ -160,6 +156,7 @@ def make_album_view(album, new_images = []):
     return {
 		**album, 
 		'description': album['description'].strip() if album['description'] else "",
+		'secret': album['secret'] if album['secret'] else "",
 		'images': images
 	}
 
@@ -169,18 +166,51 @@ def make_gallery_view(gallery):
 		'description': gallery['description'].strip()
 	}
 
-def parse_album(res, url):
+
+
+def parse_album_config(res, url, new_images = []):
     unordered_images = [parse_image(im, res) for im in res.getlist('images[]')]
     ordered_images = sorted(unordered_images, key=lambda im: float(im[0]))
-    images = [im[1] for im in ordered_images]
-    return {
-            'title': res['title'],
-            'url': url,
-            'galleries': ['all', res['gallery']],
-            'description': res['description'],
-            'public': res.get('public') == 'true',
-            'images': images
-            }
+    all_images = [im[1] for im in ordered_images] + new_images
+    images = list({im['file']: im for im in all_images}.values())
+    for im in images:
+        if isinstance(im['datetime'], str):
+            pass
+        elif im['datetime'] is None:
+            im['datetime'] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            im['datetime'] = im.get('datetime', datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")
+        for key, val in im.items():
+            if val == "":
+                im[key] = None
+                
+    config = {'title': res['title'],
+              'id': url,
+              'timestamp': int(datetime.now().timestamp()), 
+              'url': url,
+              'galleries': ['all', res['gallery']],
+              'description': res['description'],
+              'public': res.get('public') == 'true',
+              'secret': make_secret(url, res['secret'], res['password']),
+              'images': images}
+
+    # Clean config of empty strings
+    for key, val in config.items():
+        if val == "":
+            config[key] = None
+
+    return config
+
+
+
+def make_secret(url, old_secret, password):
+    if password == "":
+        return old_secret
+    else:
+        new_secret = sha256((password + url).encode('utf-8')).hexdigest()
+        return new_secret
+
+
 
 def new_album(album_id):
     return {
@@ -232,31 +262,6 @@ def upload_gallery(gallery):
     except ClientError as e:
         print(e)
     return gallery_config
-
-def make_album_config(album, new_images = []):
-    # Clean config of empty strings
-    for key, val in album.items():
-        if val == "":
-            album[key] = None
-
-    all_images = album['images'] + new_images
-    file_names = lambda image_list: set([im['file'] for im in image_list])
-    images = list(reduce(lambda l, im: l if im['file'] in file_names(l) else l+[im], all_images, []))
-    for im in images:
-        if isinstance(im['datetime'], str):
-            pass
-        elif im['datetime'] is None:
-            im['datetime'] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        else:
-            im['datetime'] = im.get('datetime', datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")
-        for key, val in im.items():
-            if val == "":
-                im[key] = None
-    return { 
-        'id': album['url'], 
-        'timestamp': int(datetime.now().timestamp()), 
-        **album,
-        'images': images }
 
 def upload_album(album_config):
     table = dynamodb.Table(albums_table)
