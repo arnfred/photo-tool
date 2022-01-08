@@ -1,29 +1,20 @@
 Utils for uploading albums to my photo gallery. This code is oooold.
 
-# Setup
+# Local Dev
 
-## VirtualEnv
+## Photo-tools web util
 
-To set up a virtualenv, run the following.
-
-```sh
-python3 -m venv env
-source env/bin/activate
-pip install -r requirements.txt
-```
-
-## Env
-
-To use the `aws.env` file you'll need to first decrypt it and then use `env` before running `photos.py`:
+To run the photo-tools webserver locally, use:
 
 ```
-gpg --decrypt < aws.test.env.gpg > aws.test.env # Password doesn't end in '?'
-env $(cat aws.test.env) photos.py publish -d .
+make run-prod
 ```
 
+Now you can access the server in your browser on `http://localhost:8000`. The `--timeout` is added to make sure gunicorn is patient and waits for the photo upload to complete before shutting down threads.
 
-# Photos Usage
+## Photo-tools cli
 
+To use the command line tool, use:
 
 ```
 # Create new album configuration file
@@ -38,16 +29,6 @@ env $(cat aws.test.env) photos.py publish -d .
 # Publish albums
 ./photos.py publish -d <conf directory> [-w <upload images> -t <temp dir> -s <conf files to skip> -k <Keep temp dir>]
 ```
-
-# Uploads Usage
-
-To run the http server for the album edit page locally, first go through the steps for setting up a virtual environment and installing dependencies (listed above), then do the following:
-
-```
-env $(cat aws.prod.env) gunicorn upload:app --timeout 99999
-```
-
-Now you can access the server in your browser on `http://localhost:8000`. The `--timeout` is added to make sure gunicorn is patient and waits for the photo upload to complete before shutting down threads.
 
 # Setting up Dokku
 
@@ -81,6 +62,3 @@ dokku domains:add photo-tools blah.ifany.org
 # Adding ffmpeg to server
 
 To use the ffmpeg binary from the python app, I've added a ffmpeg buildpack in the `.buildpacks` file
-
-
-

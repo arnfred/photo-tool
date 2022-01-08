@@ -170,8 +170,8 @@ def make_gallery_view(gallery):
 
 def parse_album_config(res, url, new_images = []):
     unordered_images = [parse_image(im, res) for im in res.getlist('images[]')]
-    ordered_images = sorted(unordered_images, key=lambda im: float(im[0]))
-    all_images = [im[1] for im in ordered_images] + new_images
+    ordered_images = sorted(unordered_images, key=lambda im: float(im['order']))
+    all_images = ordered_images + new_images
     images = list({im['file']: im for im in all_images}.values())
     for im in images:
         if isinstance(im['datetime'], str):
@@ -231,10 +231,11 @@ def new_gallery(gallery_id):
 			}
 
 def parse_image(image_name, res):
+    pprint(res)
     d = { key.split("-")[0]: val for key, val in res.items() if image_name in key }
     order = d.get('order', 0)
     fmt = "%Y-%m-%dT%H:%M:%S"
-    return order, {
+    return {'order': order,
             'description': d['description'],
             'file': image_name,
             'banner': d.get('banner') == 'true',
@@ -242,8 +243,7 @@ def parse_image(image_name, res):
             'cover': d.get('cover') == 'true',
             'published': d.get('published') == 'true',
             'is_video': d.get('is_video') == 'True',
-            'datetime': d['datetime']
-            }
+            'datetime': d['datetime']}
 
 def upload_gallery(gallery):
     # Clean config of empty strings
