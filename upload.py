@@ -21,6 +21,7 @@ images_bucket = os.environ['IMAGES_BUCKET']
 albums_table = os.environ['ALBUMS_TABLE']
 galleries_table = os.environ['GALLERIES_TABLE']
 app = Flask(__name__)
+ALBUM_PASSWORD_STARS = "*********"
 
 @app.route('/', methods =['GET'])
 def view_albums():
@@ -156,7 +157,8 @@ def make_album_view(album, new_images = []):
     return {
 		**album, 
 		'description': album['description'].strip() if album['description'] else "",
-		'secret': album['secret'] if album['secret'] else "",
+		'secret': album.get('secret', ""),
+		'password': ALBUM_PASSWORD_STARS if album.get('secret', False) else "",
 		'images': images
 	}
 
@@ -204,7 +206,7 @@ def parse_album_config(res, url, new_images = []):
 
 
 def make_secret(url, old_secret, password):
-    if password == "":
+    if password == "" or password == ALBUM_PASSWORD_STARS:
         return old_secret
     else:
         new_secret = sha256((password + url).encode('utf-8')).hexdigest()
