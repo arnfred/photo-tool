@@ -95,6 +95,11 @@ server {
     proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Port $server_port;
     proxy_set_header X-Request-Start $msec;
+    client_max_body_size 0;
+    proxy_connect_timeout       60000;
+    proxy_send_timeout          60000;
+    proxy_read_timeout          60000;
+    send_timeout                60000;
   }
   include {{ $.DOKKU_ROOT }}/{{ $.APP }}/nginx.conf.d/*.conf;
 
@@ -118,10 +123,10 @@ server {
 }
 {{ end }}{{ end }}
 
-{{ if $.DOKKU_APP_LISTENERS }}
+{{ if $.DOKKU_APP_WEB_LISTENERS }}
 {{ range $upstream_port := $.PROXY_UPSTREAM_PORTS | split " " }}
 upstream {{ $.APP }}-{{ $upstream_port }} {
-{{ range $listeners := $.DOKKU_APP_LISTENERS | split " " }}
+{{ range $listeners := $.DOKKU_APP_WEB_LISTENERS | split " " }}
 {{ $listener_list := $listeners | split ":" }}
 {{ $listener_ip := index $listener_list 0 }}
   server {{ $listener_ip }}:{{ $upstream_port }};{{ end }}
