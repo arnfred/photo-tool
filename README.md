@@ -12,6 +12,19 @@ make run-prod
 
 Now you can access the server in your browser on `http://localhost:8000`. The `--timeout` is added to make sure gunicorn is patient and waits for the photo upload to complete before shutting down threads.
 
+## Login Details
+
+See `aws.prod.env` or `aws.test.env` for login details under `SIMPLELOGIN_USERNAME` and `SIMPLELOGIN_PASSWORD`. If you for whatever reason need to change these, you'll need to manually ssh on to `dynkarken.com` and update the environment with the new values:
+
+```
+ssh dynkarken.com
+dokku config:set photo-tools SIMPLELOGIN_USERNAME=<user> SIMPLELOGIN_PASSWORD=<pass>
+```
+
+## Deploying to dokku
+
+To deploy to dokku, push to the git origin `dynkarken`
+
 ## Photo-tools cli
 
 To use the command line tool, use:

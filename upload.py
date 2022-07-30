@@ -1,4 +1,5 @@
 from flask import Flask, escape, request, render_template
+from flask_simplelogin import SimpleLogin, is_logged_in, login_required
 from hashlib import sha256
 import pathlib
 import boto3
@@ -21,9 +22,11 @@ images_bucket = os.environ['IMAGES_BUCKET']
 albums_table = os.environ['ALBUMS_TABLE']
 galleries_table = os.environ['GALLERIES_TABLE']
 app = Flask(__name__)
+SimpleLogin(app)
 ALBUM_PASSWORD_STARS = "*********"
 
 @app.route('/', methods =['GET'])
+@login_required
 def view_albums():
     table = dynamodb.Table(albums_table)
     try:
@@ -44,6 +47,7 @@ def view_albums():
         return {'error': e}, 500
 
 @app.route('/album/<album_id>', methods = ['GET'])
+@login_required
 def edit_album(album_id):
     try:
         galleries_response = dynamodb.Table(galleries_table).scan()
@@ -61,6 +65,7 @@ def edit_album(album_id):
         return {'error': e}, 500
 
 @app.route('/album/<album_id>/save', methods = ['POST'])
+@login_required
 def album_save(album_id):
     form_result = request.form
     try:
@@ -72,6 +77,7 @@ def album_save(album_id):
         return {'error': e}, 500
 
 @app.route('/album/<album_id>/upload', methods = ['POST'])
+@login_required
 def album_upload(album_id):
     form_result = request.form
     files = request.files
@@ -85,6 +91,7 @@ def album_upload(album_id):
         return {'error': e}, 500
 
 @app.route('/album/<album_id>/reorder', methods = ['POST'])
+@login_required
 def album_reorder(album_id):
     form_result = request.form
     try:
@@ -96,6 +103,7 @@ def album_reorder(album_id):
         return {'error': e}, 500
 
 @app.route('/album/<album_id>/remove/<image_id>', methods = ['POST'])
+@login_required
 def image_remove(album_id, image_id):
     form_result = request.form
     try:
@@ -107,6 +115,7 @@ def image_remove(album_id, image_id):
         return {'error': e}, 500
 
 @app.route('/album/<album_id>/fix_originals', methods = ['POST'])
+@login_required
 def fix_originals(album_id):
     form_result = request.form
     try:
@@ -118,6 +127,7 @@ def fix_originals(album_id):
         return {'error': e}, 500
 
 @app.route('/gallery/<gallery_id>', methods = ['GET'])
+@login_required
 def edit_gallery(gallery_id):
 	try:
 		galleries_matching_query = dynamodb.Table(galleries_table).query(KeyConditionExpression=Key('id').eq(gallery_id))
@@ -133,6 +143,7 @@ def edit_gallery(gallery_id):
 		return {'error': e}, 500
 
 @app.route('/gallery/<gallery_id>', methods = ['POST'])
+@login_required
 def submit_gallery(gallery_id):
     cur_gallery = request.form
     table = dynamodb.Table(galleries_table)
@@ -256,8 +267,9 @@ def upload_gallery(gallery):
     # Upload config to dynamoDB
     table = dynamodb.Table(galleries_table)
     gallery_config = { 
-			**gallery,
-			'id': gallery['url']
+        **gallery,
+        'timestamp': int(datetime.now().timestamp()), 
+        'id': gallery['url']
 	}
     try:
         table.put_item(Item=gallery_config)
