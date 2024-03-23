@@ -7,9 +7,9 @@ from photos import find_file
 def video_info(root, video_name, desc, published = True):
     """ Generate a dictionary of information about a video """
     # Init video dictionary
-    extension = video_name.split(".")[-1]
+    name = "".join(video_name.lower().split(".")[:-1])
     video_dict = {
-        'file' : video_name.lower().split(extension)[0],
+        'file' : name,
         'description' : desc.strip(" *"),
         'cover' : len(desc) > 1 and desc[-1] == '*',
         'banner' : len(desc) > 2 and desc[-2] == '*',
@@ -23,7 +23,6 @@ def video_info(root, video_name, desc, published = True):
 
     # Define what exif data we are interested in and how it is translated
     video_info = ffmpeg.probe(video_path)['streams'][0]
-    pprint(video_info),
     video_dict['datetime'] = video_info['tags']['creation_time'].split(".")[0]
     video_dict['size'] = [video_info['width'], video_info['height']]
     video_dict['is_video'] = True
@@ -36,10 +35,11 @@ def extract_thumb(video_path, thumb_path, width):
 
 def reencode_to_mp4(filename, temp_dir):
     extension = filename.split(".")[-1]
+    name = "".join(filename.lower().split(".")[:-1])
     if extension == "mp4":
         return filename
     else:
         video_path = os.path.join(temp_dir, filename)
-        mp4_path = "{}.mp4".format(video_path.lower().split(extension)[0])
+        mp4_path = "{}/{}.mp4".format(temp_dir, name)
         ffmpeg.input(video_path).output(mp4_path).run()
-        return "{}.mp4".format(filename.lower().split(extension)[0])
+        return "{}.mp4".format(name)

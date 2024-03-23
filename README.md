@@ -2,6 +2,12 @@ Utils for uploading albums to my photo gallery. This code is oooold.
 
 # Local Dev
 
+Before running the webserver, make sure you have `ffmpeg` installed:
+
+```
+brew install ffmpeg
+```
+
 ## Photo-tools web util
 
 To run the photo-tools webserver locally, use:
