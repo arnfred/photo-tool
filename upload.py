@@ -145,6 +145,22 @@ def fix_jpegs(album_id):
     except ClientError as e:
         return {'error': e}, 500
 
+@app.route('/album/<album_id>/publish_all', methods = ['POST'])
+@login_required
+def publish_all(album_id):
+    form_result = request.form
+    try:
+        album_config = parse_album_config(form_result, album_id)
+
+        for im in album_config['images']:
+            im['published'] = True
+
+        upload_album(album_config)
+        album_view = make_album_view(album_config)
+        return render_template('album.html', album=album_view, msg="All images are published")
+    except ClientError as e:
+        return {'error': e}, 500
+
 @app.route('/gallery/<gallery_id>', methods = ['GET'])
 @login_required
 def edit_gallery(gallery_id):
