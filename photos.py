@@ -171,6 +171,8 @@ def get_images(directory):
         for f in files:
             if fnmatch.fnmatch(f.lower(), "*.jpg"):
                 images.append(f)
+            if fnmatch.fnmatch(f.lower(), "*.jpeg"):
+                images.append(f)
 
         if '.git' in dirs:
             dirs.remove('.git')  # don't visit git directories
@@ -311,10 +313,14 @@ def image_exif(image_path, valid_tags = ['DateTime', 'DateTimeOriginal', 'DateTi
 
 def image_info(root, image_name, desc, published = True):
     """ Generate a dictionary of information about an image """
+    parts = image_name.lower().split(".")
+    ext = parts[-1]
+    name = ".".join(parts[:-1])
+
     # Init image dictionary
     image_dict = {
-        'file' : image_name.lower().split(".jpg")[0],
-        'extension' : "jpg",
+        'file' : name,
+        'extension' : ext,
         'description' : desc.strip(" *"),
         'cover' : len(desc) > 1 and desc[-1] == '*',
         'banner' : len(desc) > 2 and desc[-2] == '*',
@@ -368,7 +374,7 @@ def album_info(conf_pair):
                 print(("Malformed config line: '%s' (line %i)" % (conf_line.strip("\n"), idx+1)))
             exit()
         # Get information from images
-        if "jpg" in name.lower():
+        if "jpg" in name.lower() or "jpeg" in name.lower():
             images.append(image_info(images_path, name, value_stripped))
             # Add 'album' as 'title'
         elif name.lower() == "album":
@@ -416,7 +422,8 @@ def create_images(image_path, directory):
     # Open original image
     image_orig = Image.open(image_path)
     image = image_orig.copy()
-    image_name = image_path.lower().split(".jpg")[0].split("/")[-1]
+    image_ext = image_path.lower().split(".")[-1]
+    image_name = image_path.lower().split(image_ext)[0].split("/")[-1]
     orientation = 'horizontal' if image_orig.size[0] > image_orig.size[1] else 'vertical'
 
     # For each size produce an image of this size and save in directory
@@ -436,11 +443,11 @@ def create_images(image_path, directory):
         image.thumbnail((image_width, image_height), Image.ANTIALIAS)
 
         # Save image
-        image_path = "%s/%s_%ix%i.jpg" % (directory, image_name, image_width, image_height)
+        image_path = "%s/%s_%ix%i.%s" % (directory, image_name, image_width, image_height, image_ext)
         image.save(image_path, "JPEG", quality=92)
 
     # Save original
-    orig_path = "%s/%s_original.jpg" % (directory, image_name)
+    orig_path = "%s/%s_original.%s" % (directory, image_name, image_ext)
     image_orig.save(orig_path, "JPEG", quality=92)
 
 

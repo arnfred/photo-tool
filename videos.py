@@ -7,7 +7,7 @@ from photos import find_file
 def video_info(root, video_name, desc, published = True):
     """ Generate a dictionary of information about a video """
     # Init video dictionary
-    extension = video_name[-4:]
+    extension = video_name.split(".")[-1]
     video_dict = {
         'file' : video_name.lower().split(extension)[0],
         'description' : desc.strip(" *"),
@@ -35,8 +35,8 @@ def extract_thumb(video_path, thumb_path, width):
     ffmpeg.input(video_path, ss=0).filter('scale', width, -1).output(thumb_path, vframes=1).run()
 
 def reencode_to_mp4(filename, temp_dir):
-    extension = filename[-4:]
-    if extension == ".mp4":
+    extension = filename.split(".")[-1]
+    if extension == "mp4":
         return filename
     else:
         video_path = os.path.join(temp_dir, filename)

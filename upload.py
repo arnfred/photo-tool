@@ -25,7 +25,8 @@ app = Flask(__name__)
 SimpleLogin(app)
 ALBUM_PASSWORD_STARS = "*********"
 
-@app.route('/', methods =['GET'])
+
+@app.route('/', methods=['GET'])
 @login_required
 def view_albums():
     table = dynamodb.Table(albums_table)
@@ -34,19 +35,20 @@ def view_albums():
         if (response['Count'] == 0):
             return {'error': 'Albums not found'.format(album_id)}, 500
         else:
-            album_set = { a['id']: {
+            album_set = {a['id']: {
                 'id': a['id'], 
                 'nb_images': len(a['images']), 
                 'gallery': a['galleries'][-1], 
                 'title': a['title'], 
                 'timestamp': a['timestamp'] 
-            } for a in response['Items'] }
+            } for a in response['Items']}
             albums = sorted(album_set.values(), key=lambda a: a['timestamp'])[::-1]
             return render_template('list.html', albums=albums)
     except ClientError as e:
         return {'error': e}, 500
 
-@app.route('/album/<album_id>', methods = ['GET'])
+
+@app.route('/album/<album_id>', methods=['GET'])
 @login_required
 def edit_album(album_id):
     try:
@@ -64,7 +66,8 @@ def edit_album(album_id):
     except ClientError as e:
         return {'error': e}, 500
 
-@app.route('/album/<album_id>/save', methods = ['POST'])
+
+@app.route('/album/<album_id>/save', methods=['POST'])
 @login_required
 def album_save(album_id):
     form_result = request.form
@@ -76,7 +79,8 @@ def album_save(album_id):
     except ClientError as e:
         return {'error': e}, 500
 
-@app.route('/album/<album_id>/upload', methods = ['POST'])
+
+@app.route('/album/<album_id>/upload', methods=['POST'])
 @login_required
 def album_upload(album_id):
     form_result = request.form
@@ -90,7 +94,8 @@ def album_upload(album_id):
     except ClientError as e:
         return {'error': e}, 500
 
-@app.route('/album/<album_id>/reorder', methods = ['POST'])
+
+@app.route('/album/<album_id>/reorder', methods=['POST'])
 @login_required
 def album_reorder(album_id):
     form_result = request.form
@@ -123,6 +128,20 @@ def fix_originals(album_id):
         fixed = [fix_original_image(im, album_id) for im in album_config['images']]
         album_view = make_album_view(album_config)
         return render_template('album.html', album=album_view, msg="Fixed following images: {}".format(fixed))
+    except ClientError as e:
+        return {'error': e}, 500
+
+@app.route('/album/<album_id>/fix_jpegs', methods = ['POST'])
+@login_required
+def fix_jpegs(album_id):
+    form_result = request.form
+    try:
+        album_config = parse_album_config(form_result, album_id)
+        fixed = [fix_trailing_file_extension(im, album_id) for im in album_config['images']]
+        album_config['images'] = fixed
+        upload_album(album_config)
+        album_view = make_album_view(album_config)
+        return render_template('album.html', album=album_view, msg="Fixed jpeg extension of following images: {}".format([im['file'] for im in fixed]))
     except ClientError as e:
         return {'error': e}, 500
 
@@ -286,15 +305,20 @@ def upload_album(album_config):
 
 def acceptable_image(filename):
     print("Testing if '{}' is a jpg file".format(filename))
-    res = (filename != '') and ((filename.lower()[-3:] == "jpg") or (filename.lower()[-4:] == "jpeg"))
+    ext = filename.lower().split(".")[-1]
+    res = (filename != '') and (ext == "jpg") or (ext == "jpeg")
     print("Result was {}".format(res))
     return res
 
 def acceptable_video(filename):
     print("Testing if '{}' is an mp4 or mov file".format(filename))
-    res = (filename != '') and ((filename.lower()[-3:] == "mp4") or (filename.lower()[-3:] == "mov") or (filename.lower()[-3:] == "m4a"))
+    ext = filename.lower().split(".")[-1]
+    res = (filename != '') and ((ext == "mp4") or (ext == "mov") or (ext == "m4a"))
     print("Result was {}".format(res))
     return res
+
+def image_size_name(image_name, width, height):
+    return "%s_%ix%i.jpg" % (image_name, width, height)
 
 def resize(image_path, new_width, new_height, temp_dir):
     image_orig = Image.open(image_path)
@@ -312,7 +336,7 @@ def resize(image_path, new_width, new_height, temp_dir):
             image = image.crop((0, margin, width, height - margin))
 
     image.thumbnail((new_width, new_height), Image.ANTIALIAS)
-    resized_name = "%s_%ix%i.jpg" % (image_name, new_width, new_height)
+    resized_name = image_size_name(image_name, new_width, new_height)
     image_path = "%s/%s" % (temp_dir, resized_name)
     print("Saving '{}' to '{}'".format(image_name, image_path))
     image.save(image_path, "JPEG", quality=92)
@@ -325,34 +349,37 @@ def upload_files(files, album_id):
     media_conf = []
     for medium in media:
         if acceptable_image(medium.filename):
-            filename = medium.filename.lower()
-            path = os.path.join(temp_dir, filename)
+            filepath = medium.filename.lower()
+            path = os.path.join(temp_dir, filepath)
             medium.save(path)
             for (width, height) in image_sizes:
                 resized_name = resize(path, width, height, temp_dir)
                 upload_s3(resized_name, album_id, temp_dir, images_bucket)
 
-            original_file = "{}_original.jpg".format(filename[:-4])
+            
+            filename = "".join(filepath.split(".")[:-1])
+            original_file = "{}_original.jpg".format(filename)
             original_path = os.path.join(temp_dir, original_file)
             Image.open(path).save(original_path, "JPEG", quality=92)
             upload_s3(original_file, album_id, temp_dir, images_bucket)
 
-            conf = image_info(temp_dir, filename, "", published = False)
+            conf = image_info(temp_dir, filepath, "", published = False)
             conf['size'] = [conf['size'][0], conf['size'][1]]
             media_conf.append(conf)
 
         elif acceptable_video(medium.filename):
-            filename = medium.filename.lower()
-            path = os.path.join(temp_dir, filename)
+            filepath = medium.filename.lower()
+            path = os.path.join(temp_dir, filepath)
             medium.save(path)
-            mp4_filename = reencode_to_mp4(filename, temp_dir)
+            mp4_filename = reencode_to_mp4(filepath, temp_dir)
             mp4_path = os.path.join(temp_dir, mp4_filename)
             upload_s3(mp4_filename, album_id, temp_dir, images_bucket)
 
-            conf = video_info(temp_dir, filename, "", published = False)
+            conf = video_info(temp_dir, filepath, "", published = False)
 
             # Save thumbnail
-            thumb_name = "{}.jpg".format(mp4_filename[:-4])
+            thumb_filename = "".join(mp4_filename.split(".")[:-1])
+            thumb_name = "{}.jpg".format(thumb_filename)
             thumb_path = os.path.join(temp_dir, thumb_name)
             extract_thumb(mp4_path, thumb_path, conf['size'][0])
             thumb_size = image_size(thumb_path)
@@ -361,7 +388,7 @@ def upload_files(files, album_id):
                 upload_s3(resized_name, album_id, temp_dir, images_bucket)
 
             # Save thumb original
-            thumb_original_file = "{}_original.jpg".format(thumb_name[:-4])
+            thumb_original_file = "{}_original.jpg".format(thumb_filename)
             thumb_original_path = os.path.join(temp_dir, thumb_original_file)
             Image.open(thumb_path).save(thumb_original_path, "JPEG", quality=92)
             upload_s3(thumb_original_file, album_id, temp_dir, images_bucket)
@@ -371,6 +398,35 @@ def upload_files(files, album_id):
             media_conf.append(conf)
 
     return media_conf
+
+def fix_trailing_file_extension(image, album_id):
+    # Correcting all sizes of images
+    old_file = image['file']
+    new_file = image['file'].replace(".jpeg", "")
+    for (width, height) in image_sizes:
+        old_filename = image_size_name(old_file, width, height)
+        old_key = f"albums/{album_id}/{old_filename}"
+        new_filename = image_size_name(new_file, width, height)
+        new_key = f"albums/{album_id}/{new_filename}"
+        try:
+            s3.Object(bucket_name=images_bucket, key=new_key).get()
+            print("Original already correctly stored: {}".format(new_key))
+        except ClientError:
+            print("Copying {} to {}".format(old_key, new_key))
+            s3.Object(images_bucket, new_key).copy_from(CopySource={'Bucket': images_bucket, 'Key': old_key})
+
+    # correcting original image (e.g. img_5328._original.jpg)
+    old_key = f"albums/{album_id}/{old_file.replace("jpeg", "")}_original.jpg"
+    new_key = f"albums/{album_id}/{new_file}_original.jpg"
+    try:
+        s3.Object(bucket_name=images_bucket, key=new_key).get()
+        print("Original already correctly stored: {}".format(new_key))
+    except ClientError:
+        print("Copying {} to {}".format(old_key, new_key))
+        s3.Object(images_bucket, new_key).copy_from(CopySource={'Bucket': images_bucket, 'Key': old_key})
+
+    image['file'] = new_file
+    return image
 
 def fix_original_image(image, album_id):
     old_key = "albums/{}/{}_original.jpg".format(album_id, image['file'].upper())

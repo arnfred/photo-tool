@@ -4,3 +4,4 @@ env/
 album.conf
 album.toml
 galleries.conf
+venv/
