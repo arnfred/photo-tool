@@ -339,7 +339,7 @@ def image_size_name(image_name, width, height):
 def resize(image_path, new_width, new_height, temp_dir):
     image_orig = Image.open(image_path)
     image = image_orig.copy()
-    image_name = image_path.lower().split(".jpg")[0].split("/")[-1]
+    image_name = "".join(image_path.split(".")[:-1]).split("/")[-1]
     orientation = 'horizontal' if image_orig.size[0] > image_orig.size[1] else 'vertical'
 
     if new_width == new_height:
